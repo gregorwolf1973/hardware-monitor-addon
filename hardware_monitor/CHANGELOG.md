@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.08
+- Prozessliste: Kommandozeile, User und Container-/Addon-Badge je Prozess
+- Erkennt automatisch HA-Addon-Container und Docker-Container und kennzeichnet sie
+- HTML-Escaping für sichere Anzeige der Cmdlines
+
 ## 1.07
 - Zurück zum HA-Base-Image (Supervisor erlaubt nur ghcr.io/home-assistant/*)
 - ENTRYPOINT [] umgeht den s6-Init, sodass host_pid:true funktioniert

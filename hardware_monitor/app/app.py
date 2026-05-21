@@ -138,13 +138,36 @@ def processes():
 
     procs = []
     access_denied = 0
-    for proc in psutil.process_iter(["pid", "name", "cpu_percent", "memory_info", "memory_percent", "status"]):
+    for proc in psutil.process_iter(["pid", "name", "username", "cpu_percent",
+                                     "memory_info", "memory_percent", "status", "cmdline"]):
         try:
             info = proc.info
             ram_mb = (info["memory_info"].rss // (1024 * 1024)) if info["memory_info"] else 0
+            cmdline_list = info.get("cmdline") or []
+            cmdline = " ".join(cmdline_list).strip()
+            # /proc/<pid>/cgroup for docker container hint
+            container = ""
+            try:
+                with open(f"/proc/{info['pid']}/cgroup") as f:
+                    cg = f.read()
+                    # match docker / addon container id
+                    import re as _re
+                    m = _re.search(r"docker[/-]([a-f0-9]{12,64})", cg)
+                    if m:
+                        container = m.group(1)[:12]
+                    elif "addon_" in cg:
+                        am = _re.search(r"addon_([a-z0-9_]+)", cg)
+                        if am:
+                            container = "addon:" + am.group(1)
+            except Exception:
+                pass
+
             procs.append({
                 "pid": info["pid"],
                 "name": info["name"] or "?",
+                "user": info.get("username") or "",
+                "cmdline": cmdline,
+                "container": container,
                 "cpu": round(info["cpu_percent"] or 0, 1),
                 "ram_mb": ram_mb,
                 "ram_percent": round(info["memory_percent"] or 0, 1),

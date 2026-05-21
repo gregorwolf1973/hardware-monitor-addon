@@ -199,7 +199,30 @@
   tbody tr:hover { background: var(--surface2); }
   td { padding: 8px 14px; vertical-align: middle; color: var(--text); }
   td.pid { color: var(--text-dim); font-family: monospace; }
-  td.name { font-weight: 500; color: var(--text-bright); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  td.name { font-weight: 500; color: var(--text-bright); max-width: 420px; }
+  td.name .pname { display: flex; align-items: center; gap: 8px; }
+  td.name .cmdline {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    font-family: ui-monospace, monospace;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 420px;
+  }
+  .badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-weight: 600;
+    letter-spacing: .03em;
+    line-height: 1.3;
+  }
+  .badge-user { background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); }
+  .badge-addon { background: rgba(3,169,244,.15); color: var(--primary); border: 1px solid rgba(3,169,244,.3); }
+  .badge-docker { background: rgba(102,187,106,.12); color: var(--success); border: 1px solid rgba(102,187,106,.3); }
   td.cpu-val { font-weight: 600; }
   td.cpu-high { color: var(--danger); }
   td.cpu-warn { color: var(--warn); }
@@ -534,13 +557,27 @@ async function loadProcesses() {
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-dim)">Keine Prozesse</td></tr>';
       return;
     }
+    const esc = s => (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     tbody.innerHTML = procs.map(p => {
       const cpuCls = p.cpu >= 80 ? 'cpu-high' : p.cpu >= 30 ? 'cpu-warn' : '';
       const statusCls = p.status === 'running' ? 'running' : '';
       const ramBarColor = p.ram_percent >= 80 ? '#f44336' : p.ram_percent >= 50 ? '#ffb74d' : '#66bb6a';
+      let badge = '';
+      if (p.container) {
+        if (p.container.startsWith('addon:'))
+          badge = `<span class="badge badge-addon" title="HA Addon">${esc(p.container.slice(6))}</span>`;
+        else
+          badge = `<span class="badge badge-docker" title="Docker Container">docker ${esc(p.container)}</span>`;
+      }
+      const userBadge = p.user ? `<span class="badge badge-user" title="User">${esc(p.user)}</span>` : '';
+      const cmd = p.cmdline && p.cmdline !== p.name
+        ? `<div class="cmdline" title="${esc(p.cmdline)}">${esc(p.cmdline)}</div>` : '';
       return `<tr>
         <td class="pid">${p.pid}</td>
-        <td class="name" title="${p.name}">${p.name}</td>
+        <td class="name">
+          <div class="pname"><span>${esc(p.name)}</span>${badge}${userBadge}</div>
+          ${cmd}
+        </td>
         <td class="cpu-val ${cpuCls}">${p.cpu.toFixed(1)} %</td>
         <td>
           <span class="mini-bar-wrap"><span class="mini-bar-fill" style="width:${Math.min(p.ram_percent,100)}%;background:${ramBarColor}"></span></span>
