@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.06
+- Basisimage gewechselt: weg von HAs s6-Image (Konflikt mit host_pid), hin zu python:3.12-alpine
+- s6-overlay verlangt zwingend PID 1 — mit host_pid:true unmöglich
+- run.sh: plain sh statt bashio (war ohne Optionen ohnehin überflüssig)
+
 ## 1.05
 - full_access entfernt (kollidierte mit host_pid → Addon startete nicht)
 - Privileg-Caps auf SYS_PTRACE reduziert (analog Glances)

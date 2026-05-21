@@ -2,13 +2,11 @@ ARG BUILD_FROM
 FROM $BUILD_FROM
 
 RUN apk add --no-cache \
-    python3 \
-    py3-pip \
     bash \
-    lm-sensors \
-    procps
+    procps \
+    lm-sensors
 
-RUN pip3 install --break-system-packages flask psutil
+RUN pip install --no-cache-dir flask psutil
 
 RUN mkdir -p /app/templates
 

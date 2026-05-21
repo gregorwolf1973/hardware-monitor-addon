@@ -1,10 +1,6 @@
-#!/usr/bin/with-contenv bashio
-
+#!/bin/sh
 set -e
 
-bashio::log.info "Starting Hardware Monitor..."
-
+echo "[hardware-monitor] starting..."
 export PORT=8200
-
-bashio::log.info "Web GUI starting on port ${PORT}..."
 exec python3 /app/app.py
