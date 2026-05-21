@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.04
+- Korrekter Hinweis im Diagnose-Banner: Protection Mode ausschalten (Info-Tab) statt Neuinstallation
+
 ## 1.03
 - Diagnose-Banner zeigt jetzt an, ob host_pid effektiv ist (PID-1-Check + /proc-Auswertung)
 - Falls inaktiv: konkrete Reparatur-Anleitung in der UI

@@ -517,9 +517,11 @@ async function loadProcesses() {
         dEl.style.display = '';
         dEl.style.borderColor = 'var(--danger)';
         dEl.style.color = 'var(--danger)';
-        dEl.innerHTML = `⚠ host_pid INAKTIV — Container sieht nur sich selbst.<br>
-          PID 1 = "${diag.pid1_name}" · /proc enthält ${diag.proc_pids_total} PIDs · psutil zeigt ${diag.psutil_visible} · denied: ${diag.access_denied}<br>
-          → Addon in HA <b>deinstallieren und neu installieren</b>, damit der Container mit host_pid:true neu erstellt wird.`;
+        dEl.innerHTML = `⚠ <b>Protection Mode aktiv</b> — HA blockiert host_pid trotz korrekter Config.<br>
+          PID 1 = "${diag.pid1_name}" · /proc: ${diag.proc_pids_total} PIDs · psutil: ${diag.psutil_visible}<br>
+          <b>Lösung:</b> Einstellungen → Add-ons → Hardware Monitor → Tab <b>"Info"</b> →
+          Schalter <b>"Protection mode"</b> AUSSCHALTEN → Addon neu starten.<br>
+          (HA aktiviert Protection bei Custom-Repos automatisch und blockiert dann host_pid, full_access und privilegierte Caps.)`;
         infoEl.textContent = `${diag.psutil_visible} Prozesse (nur Container) — sortiert nach:`;
       } else {
         dEl.style.display = 'none';
