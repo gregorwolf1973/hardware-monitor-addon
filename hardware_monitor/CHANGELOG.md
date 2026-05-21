@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.05
+- full_access entfernt (kollidierte mit host_pid → Addon startete nicht)
+- Privileg-Caps auf SYS_PTRACE reduziert (analog Glances)
+- hassio_role: manager ergänzt
+
 ## 1.04
 - Korrekter Hinweis im Diagnose-Banner: Protection Mode ausschalten (Info-Tab) statt Neuinstallation
 
