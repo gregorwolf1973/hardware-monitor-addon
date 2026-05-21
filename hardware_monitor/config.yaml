@@ -1,0 +1,22 @@
+name: "Hardware Monitor"
+description: "Live-Übersicht der Hardware-Ressourcen: CPU, RAM, Disk, Netzwerk und Top-Prozesse"
+version: "1.00"
+url: "https://github.com/gregorwolf1973/hardware-monitor-addon"
+slug: "hardware_monitor"
+init: false
+arch:
+  - aarch64
+  - amd64
+  - armv7
+startup: application
+boot: auto
+ingress: true
+ingress_port: 8200
+panel_icon: "mdi:monitor-dashboard"
+panel_title: "Hardware Monitor"
+host_network: true
+privileged:
+  - SYS_PTRACE
+apparmor: false
+options: {}
+schema: {}

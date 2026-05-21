@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hardware Monitor</title>
+<style>
+  /* ── Theme ── */
+  :root {
+    --primary: #03a9f4;
+    --bg: #f5f6fa;
+    --surface: #ffffff;
+    --surface2: #f0f2f5;
+    --border: #e1e5eb;
+    --text: #1c1c1c;
+    --text-dim: #6e7681;
+    --text-bright: #1c1c1c;
+    --danger: #db4437;
+    --warn: #f4b400;
+    --success: #0f9d58;
+    --shadow: 0 1px 3px rgba(0,0,0,.08);
+    --radius: 12px;
+    --header-bg: #ffffff;
+  }
+  [data-theme="dark"] {
+    --primary: #4fc3f7;
+    --bg: #111318;
+    --surface: #1c1f27;
+    --surface2: #252830;
+    --border: #333842;
+    --text: #c8cdd5;
+    --text-dim: #6b7280;
+    --text-bright: #edf0f5;
+    --danger: #f44336;
+    --warn: #ffb74d;
+    --success: #66bb6a;
+    --shadow: 0 1px 4px rgba(0,0,0,.3);
+    --header-bg: #1c1f27;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 14px; }
+  body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; min-height: 100vh; }
+
+  /* ── Header ── */
+  header {
+    background: var(--header-bg);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow);
+  }
+  header h1 { font-size: 1.15rem; font-weight: 600; color: var(--text-bright); display: flex; align-items: center; gap: 8px; }
+  header h1 svg { color: var(--primary); }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  #refresh-badge {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3px 10px;
+  }
+  #refresh-badge.live { color: var(--success); }
+  .btn-icon {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 6px 10px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.8rem;
+    transition: background .15s, color .15s;
+  }
+  .btn-icon:hover { background: var(--surface2); color: var(--text-bright); }
+
+  /* ── Layout ── */
+  main { max-width: 1400px; margin: 0 auto; padding: 20px 16px 40px; }
+
+  /* ── Section titles ── */
+  .section-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 24px 0 12px;
+  }
+
+  /* ── Cards grid ── */
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
+  }
+  .card-label { font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .card-value { font-size: 2rem; font-weight: 700; color: var(--text-bright); line-height: 1.1; }
+  .card-sub { font-size: 0.8rem; color: var(--text-dim); margin-top: 4px; }
+
+  /* ── Progress bar ── */
+  .bar-wrap { height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; margin-top: 12px; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width .4s ease, background-color .4s; }
+  .bar-ok   { background: var(--success); }
+  .bar-warn { background: var(--warn); }
+  .bar-crit { background: var(--danger); }
+
+  /* ── Per-core grid ── */
+  .cores-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(54px, 1fr)); gap: 6px; margin-top: 12px; }
+  .core-chip {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 6px 4px;
+    text-align: center;
+    font-size: 0.72rem;
+    color: var(--text-dim);
+  }
+  .core-chip strong { display: block; font-size: 0.9rem; font-weight: 700; color: var(--text-bright); }
+
+  /* ── Disk list ── */
+  .disk-list { display: flex; flex-direction: column; gap: 12px; }
+  .disk-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; box-shadow: var(--shadow); }
+  .disk-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .disk-dev { font-weight: 600; color: var(--text-bright); font-size: 0.9rem; }
+  .disk-mp { font-size: 0.78rem; color: var(--text-dim); }
+  .disk-stats { display: flex; gap: 16px; font-size: 0.8rem; color: var(--text-dim); margin-top: 6px; }
+  .disk-stats span strong { color: var(--text); }
+
+  /* ── Temp pills ── */
+  .temp-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .temp-pill {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 0.82rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .temp-pill .temp-label { color: var(--text-dim); }
+  .temp-pill .temp-val { font-weight: 700; color: var(--text-bright); }
+  .temp-pill.warm .temp-val { color: var(--warn); }
+  .temp-pill.hot  .temp-val { color: var(--danger); }
+
+  /* ── Network card ── */
+  .net-row { display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.82rem; }
+  .net-row .net-label { color: var(--text-dim); }
+  .net-row .net-val { font-weight: 600; color: var(--text-bright); }
+
+  /* ── System info ── */
+  .sysinfo { display: flex; flex-wrap: wrap; gap: 12px; }
+  .sysinfo-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 16px; font-size: 0.82rem; display: flex; gap: 8px; align-items: center; }
+  .sysinfo-item .si-label { color: var(--text-dim); }
+  .sysinfo-item .si-val { font-weight: 600; color: var(--text-bright); }
+
+  /* ── Process table ── */
+  .proc-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+  .sort-btns { display: flex; gap: 6px; }
+  .sort-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 5px 14px;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .sort-btn:hover { border-color: var(--primary); color: var(--primary); }
+  .sort-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 600; }
+
+  table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); font-size: 0.83rem; }
+  thead th {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--surface2); }
+  td { padding: 8px 14px; vertical-align: middle; color: var(--text); }
+  td.pid { color: var(--text-dim); font-family: monospace; }
+  td.name { font-weight: 500; color: var(--text-bright); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  td.cpu-val { font-weight: 600; }
+  td.cpu-high { color: var(--danger); }
+  td.cpu-warn { color: var(--warn); }
+  .status-pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: var(--surface2);
+    color: var(--text-dim);
+  }
+  .status-pill.running { background: rgba(15,157,88,.12); color: var(--success); }
+
+  /* ── Mini bar ── */
+  .mini-bar-wrap { width: 80px; height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; display: inline-block; vertical-align: middle; margin-right: 6px; }
+  .mini-bar-fill { height: 100%; border-radius: 3px; }
+
+  /* ── Loading skeleton ── */
+  .loading { opacity: .4; pointer-events: none; }
+  @keyframes pulse { 0%,100%{opacity:.4}50%{opacity:.7} }
+  .skeleton { animation: pulse 1.4s ease infinite; background: var(--border); border-radius: 6px; height: 1em; width: 60px; display: inline-block; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+    </svg>
+    Hardware Monitor
+  </h1>
+  <div class="header-right">
+    <span id="refresh-badge">Laden…</span>
+    <button class="btn-icon" id="theme-btn" title="Theme wechseln">
+      <svg id="theme-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<main>
+
+  <!-- ── System Info ── -->
+  <p class="section-title">System</p>
+  <div class="sysinfo" id="sysinfo">
+    <div class="sysinfo-item"><span class="si-label">Host</span><span class="si-val skeleton">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+    <div class="sysinfo-item"><span class="si-label">Laufzeit</span><span class="si-val skeleton">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+    <div class="sysinfo-item"><span class="si-label">Plattform</span><span class="si-val skeleton">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+  </div>
+
+  <!-- ── CPU ── -->
+  <p class="section-title">CPU</p>
+  <div class="cards" id="cpu-cards">
+    <div class="card">
+      <div class="card-label">Auslastung</div>
+      <div class="card-value" id="cpu-pct"><span class="skeleton"></span></div>
+      <div class="bar-wrap"><div class="bar-fill bar-ok" id="cpu-bar" style="width:0%"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-label">Kerne</div>
+      <div class="card-value" id="cpu-cores"><span class="skeleton"></span></div>
+      <div class="card-sub" id="cpu-freq"></div>
+    </div>
+    <div class="card" style="grid-column: span 2;">
+      <div class="card-label">Pro Kern</div>
+      <div class="cores-grid" id="cores-grid"></div>
+    </div>
+  </div>
+
+  <!-- ── RAM ── -->
+  <p class="section-title">Arbeitsspeicher</p>
+  <div class="cards" id="mem-cards">
+    <div class="card">
+      <div class="card-label">RAM Auslastung</div>
+      <div class="card-value" id="mem-pct"><span class="skeleton"></span></div>
+      <div class="card-sub" id="mem-detail"></div>
+      <div class="bar-wrap"><div class="bar-fill bar-ok" id="mem-bar" style="width:0%"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-label">Swap</div>
+      <div class="card-value" id="swap-pct"><span class="skeleton"></span></div>
+      <div class="card-sub" id="swap-detail"></div>
+      <div class="bar-wrap"><div class="bar-fill bar-ok" id="swap-bar" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <!-- ── Network ── -->
+  <p class="section-title">Netzwerk</p>
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+        Durchsatz
+      </div>
+      <div class="net-row"><span class="net-label">↑ Senden</span><span class="net-val" id="net-tx">–</span></div>
+      <div class="net-row"><span class="net-label">↓ Empfangen</span><span class="net-val" id="net-rx">–</span></div>
+      <div class="net-row" style="margin-top:10px; padding-top:8px; border-top:1px solid var(--border)">
+        <span class="net-label">Gesamt Gesendet</span><span class="net-val" id="net-total-tx">–</span>
+      </div>
+      <div class="net-row"><span class="net-label">Gesamt Empfangen</span><span class="net-val" id="net-total-rx">–</span></div>
+    </div>
+  </div>
+
+  <!-- ── Temperatures ── -->
+  <div id="temp-section" style="display:none">
+    <p class="section-title">Temperaturen</p>
+    <div class="temp-grid" id="temp-grid"></div>
+  </div>
+
+  <!-- ── Disks ── -->
+  <p class="section-title">Datenträger</p>
+  <div class="disk-list" id="disk-list"></div>
+
+  <!-- ── Processes ── -->
+  <p class="section-title" style="margin-top:30px">Prozesse</p>
+  <div class="proc-header">
+    <span style="font-size:0.8rem; color:var(--text-dim)">Top 60 Prozesse — sortiert nach:</span>
+    <div class="sort-btns">
+      <button class="sort-btn active" data-sort="cpu">CPU</button>
+      <button class="sort-btn" data-sort="ram">RAM</button>
+      <button class="sort-btn" data-sort="name">Name</button>
+    </div>
+  </div>
+  <table id="proc-table">
+    <thead>
+      <tr>
+        <th>PID</th>
+        <th>Name</th>
+        <th>CPU %</th>
+        <th>RAM</th>
+        <th>RAM %</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="proc-body">
+      <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-dim)">Lade Prozesse…</td></tr>
+    </tbody>
+  </table>
+
+</main>
+
+<script>
+/* ── Helpers ── */
+const fmt = {
+  pct: v => v.toFixed(1) + ' %',
+  bytes: v => {
+    if (v >= 1e12) return (v/1e12).toFixed(2) + ' TB';
+    if (v >= 1e9)  return (v/1e9).toFixed(2)  + ' GB';
+    if (v >= 1e6)  return (v/1e6).toFixed(1)  + ' MB';
+    return (v/1e3).toFixed(0) + ' KB';
+  },
+  bps: v => {
+    if (v >= 1e6)  return (v/1e6).toFixed(2)  + ' MB/s';
+    if (v >= 1e3)  return (v/1e3).toFixed(1)  + ' KB/s';
+    return v.toFixed(0) + ' B/s';
+  },
+  uptime: s => {
+    const d = Math.floor(s/86400), h = Math.floor((s%86400)/3600), m = Math.floor((s%3600)/60);
+    if (d > 0) return `${d}d ${h}h ${m}m`;
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m}m`;
+  },
+  freq: mhz => mhz >= 1000 ? (mhz/1000).toFixed(2) + ' GHz' : mhz + ' MHz',
+};
+
+function barClass(pct) {
+  if (pct >= 90) return 'bar-crit';
+  if (pct >= 70) return 'bar-warn';
+  return 'bar-ok';
+}
+
+function setBar(barEl, pct) {
+  barEl.style.width = pct + '%';
+  barEl.className = 'bar-fill ' + barClass(pct);
+}
+
+/* ── Theme ── */
+const stored = localStorage.getItem('hm-theme');
+if (stored) document.documentElement.dataset.theme = stored;
+document.getElementById('theme-btn').addEventListener('click', () => {
+  const cur = document.documentElement.dataset.theme || 'light';
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  localStorage.setItem('hm-theme', next);
+});
+
+/* ── Sort state ── */
+let currentSort = 'cpu';
+document.querySelectorAll('.sort-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentSort = btn.dataset.sort;
+    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    loadProcesses();
+  });
+});
+
+/* ── Fetch hardware ── */
+async function loadHardware() {
+  try {
+    const res = await fetch('api/hardware');
+    const d = await res.json();
+
+    // System
+    document.getElementById('sysinfo').innerHTML = `
+      <div class="sysinfo-item"><span class="si-label">Host</span><span class="si-val">${d.system.hostname}</span></div>
+      <div class="sysinfo-item"><span class="si-label">Laufzeit</span><span class="si-val">${fmt.uptime(d.system.uptime_seconds)}</span></div>
+      <div class="sysinfo-item"><span class="si-label">Plattform</span><span class="si-val">${d.system.platform}</span></div>
+    `;
+
+    // CPU
+    const cpuPct = d.cpu.percent;
+    document.getElementById('cpu-pct').textContent = fmt.pct(cpuPct);
+    setBar(document.getElementById('cpu-bar'), cpuPct);
+    document.getElementById('cpu-cores').textContent =
+      d.cpu.cores_physical + ' / ' + d.cpu.cores_logical;
+    if (d.cpu.freq_current) {
+      document.getElementById('cpu-freq').textContent =
+        fmt.freq(d.cpu.freq_current) + (d.cpu.freq_max ? ' — max ' + fmt.freq(d.cpu.freq_max) : '');
+    }
+    const cg = document.getElementById('cores-grid');
+    cg.innerHTML = d.cpu.per_core.map((p, i) =>
+      `<div class="core-chip"><strong>${p.toFixed(0)}%</strong>C${i}</div>`
+    ).join('');
+
+    // Memory
+    const memPct = d.memory.percent;
+    document.getElementById('mem-pct').textContent = fmt.pct(memPct);
+    document.getElementById('mem-detail').textContent =
+      fmt.bytes(d.memory.used) + ' / ' + fmt.bytes(d.memory.total) +
+      ' (frei: ' + fmt.bytes(d.memory.available) + ')';
+    setBar(document.getElementById('mem-bar'), memPct);
+
+    const swapPct = d.swap.percent;
+    document.getElementById('swap-pct').textContent = fmt.pct(swapPct);
+    document.getElementById('swap-detail').textContent =
+      d.swap.total > 0
+        ? fmt.bytes(d.swap.used) + ' / ' + fmt.bytes(d.swap.total)
+        : 'kein Swap';
+    setBar(document.getElementById('swap-bar'), swapPct);
+
+    // Network
+    document.getElementById('net-tx').textContent = fmt.bps(d.network.tx_bps);
+    document.getElementById('net-rx').textContent = fmt.bps(d.network.rx_bps);
+    document.getElementById('net-total-tx').textContent = fmt.bytes(d.network.total_sent);
+    document.getElementById('net-total-rx').textContent = fmt.bytes(d.network.total_recv);
+
+    // Temperatures
+    const ts = d.temperatures;
+    const tempSec = document.getElementById('temp-section');
+    if (ts && ts.length > 0) {
+      tempSec.style.display = '';
+      document.getElementById('temp-grid').innerHTML = ts.map(t => {
+        let cls = '';
+        if (t.critical && t.current >= t.critical * 0.9) cls = 'hot';
+        else if (t.high && t.current >= t.high * 0.85) cls = 'warm';
+        return `<div class="temp-pill ${cls}"><span class="temp-label">${t.label}</span><span class="temp-val">${t.current} °C</span></div>`;
+      }).join('');
+    } else {
+      tempSec.style.display = 'none';
+    }
+
+    // Disks
+    const dl = document.getElementById('disk-list');
+    if (d.disks.length === 0) {
+      dl.innerHTML = '<p style="color:var(--text-dim);font-size:.85rem">Keine Datenträger gefunden.</p>';
+    } else {
+      dl.innerHTML = d.disks.map(disk => `
+        <div class="disk-item">
+          <div class="disk-header">
+            <span class="disk-dev">${disk.device}</span>
+            <span class="disk-mp">${disk.mountpoint} <span style="color:var(--border)">·</span> ${disk.fstype}</span>
+          </div>
+          <div class="bar-wrap"><div class="bar-fill ${barClass(disk.percent)}" style="width:${disk.percent}%"></div></div>
+          <div class="disk-stats">
+            <span><strong>${fmt.bytes(disk.used)}</strong> belegt</span>
+            <span><strong>${fmt.bytes(disk.free)}</strong> frei</span>
+            <span><strong>${fmt.bytes(disk.total)}</strong> gesamt</span>
+            <span><strong>${disk.percent.toFixed(1)} %</strong></span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Badge
+    const badge = document.getElementById('refresh-badge');
+    badge.textContent = 'Live · ' + new Date().toLocaleTimeString('de-DE');
+    badge.classList.add('live');
+  } catch(e) {
+    document.getElementById('refresh-badge').textContent = 'Fehler';
+    document.getElementById('refresh-badge').classList.remove('live');
+  }
+}
+
+/* ── Fetch processes ── */
+async function loadProcesses() {
+  try {
+    const res = await fetch(`api/processes?sort=${currentSort}`);
+    const procs = await res.json();
+    const tbody = document.getElementById('proc-body');
+    if (!procs.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-dim)">Keine Prozesse</td></tr>';
+      return;
+    }
+    tbody.innerHTML = procs.map(p => {
+      const cpuCls = p.cpu >= 80 ? 'cpu-high' : p.cpu >= 30 ? 'cpu-warn' : '';
+      const statusCls = p.status === 'running' ? 'running' : '';
+      const ramBarColor = p.ram_percent >= 80 ? '#f44336' : p.ram_percent >= 50 ? '#ffb74d' : '#66bb6a';
+      return `<tr>
+        <td class="pid">${p.pid}</td>
+        <td class="name" title="${p.name}">${p.name}</td>
+        <td class="cpu-val ${cpuCls}">${p.cpu.toFixed(1)} %</td>
+        <td>
+          <span class="mini-bar-wrap"><span class="mini-bar-fill" style="width:${Math.min(p.ram_percent,100)}%;background:${ramBarColor}"></span></span>
+          ${p.ram_mb} MB
+        </td>
+        <td>${p.ram_percent.toFixed(1)} %</td>
+        <td><span class="status-pill ${statusCls}">${p.status}</span></td>
+      </tr>`;
+    }).join('');
+  } catch(e) { /* ignore */ }
+}
+
+/* ── Auto-refresh ── */
+async function refresh() {
+  await Promise.all([loadHardware(), loadProcesses()]);
+}
+
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>
