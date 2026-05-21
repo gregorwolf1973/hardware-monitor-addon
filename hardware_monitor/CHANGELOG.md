@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.01
+- Fix: host_pid aktiviert — jetzt werden alle Prozesse aller Addons und des Host-Systems angezeigt
+
 ## 1.00
 - Erstveröffentlichung
 - CPU-Auslastung gesamt und pro Kern
