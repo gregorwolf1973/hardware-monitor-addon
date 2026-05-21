@@ -124,7 +124,20 @@ def hardware():
 def processes():
     sort_by = request.args.get("sort", "cpu")  # name | cpu | ram
 
+    # diagnostic – are we in host PID namespace?
+    try:
+        proc_pids = [p for p in os.listdir("/proc") if p.isdigit()]
+        proc_pid_count = len(proc_pids)
+    except Exception:
+        proc_pid_count = -1
+    try:
+        with open("/proc/1/comm") as f:
+            pid1_name = f.read().strip()
+    except Exception:
+        pid1_name = "?"
+
     procs = []
+    access_denied = 0
     for proc in psutil.process_iter(["pid", "name", "cpu_percent", "memory_info", "memory_percent", "status"]):
         try:
             info = proc.info
@@ -137,7 +150,9 @@ def processes():
                 "ram_percent": round(info["memory_percent"] or 0, 1),
                 "status": info["status"],
             })
-        except (psutil.NoSuchProcess, psutil.AccessDenied):
+        except psutil.AccessDenied:
+            access_denied += 1
+        except (psutil.NoSuchProcess, Exception):
             pass
 
     if sort_by == "name":
@@ -147,7 +162,16 @@ def processes():
     else:
         procs.sort(key=lambda x: x["cpu"], reverse=True)
 
-    return jsonify(procs[:60])
+    return jsonify({
+        "processes": procs[:60],
+        "diag": {
+            "proc_pids_total": proc_pid_count,
+            "pid1_name": pid1_name,
+            "psutil_visible": len(procs),
+            "access_denied": access_denied,
+            "host_pid_active": pid1_name not in ("s6-svscan", "?") and proc_pid_count > 30,
+        },
+    })
 
 
 if __name__ == "__main__":

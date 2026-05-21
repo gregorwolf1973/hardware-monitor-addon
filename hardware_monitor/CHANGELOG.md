@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.03
+- Diagnose-Banner zeigt jetzt an, ob host_pid effektiv ist (PID-1-Check + /proc-Auswertung)
+- Falls inaktiv: konkrete Reparatur-Anleitung in der UI
+
 ## 1.02
 - Erweiterte Privilegien (full_access, SYS_ADMIN, DAC_READ_SEARCH) damit Host-Prozesse zuverlässig sichtbar werden
 

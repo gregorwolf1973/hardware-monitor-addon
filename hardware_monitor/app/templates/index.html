@@ -322,13 +322,14 @@
   <!-- ── Processes ── -->
   <p class="section-title" style="margin-top:30px">Prozesse</p>
   <div class="proc-header">
-    <span style="font-size:0.8rem; color:var(--text-dim)">Top 60 Prozesse — sortiert nach:</span>
+    <span id="proc-info" style="font-size:0.8rem; color:var(--text-dim)">Top 60 Prozesse — sortiert nach:</span>
     <div class="sort-btns">
       <button class="sort-btn active" data-sort="cpu">CPU</button>
       <button class="sort-btn" data-sort="ram">RAM</button>
       <button class="sort-btn" data-sort="name">Name</button>
     </div>
   </div>
+  <div id="proc-diag" style="display:none; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; margin-bottom:10px; font-size:0.78rem; color:var(--text-dim); font-family:monospace;"></div>
   <table id="proc-table">
     <thead>
       <tr>
@@ -504,7 +505,28 @@ async function loadHardware() {
 async function loadProcesses() {
   try {
     const res = await fetch(`api/processes?sort=${currentSort}`);
-    const procs = await res.json();
+    const data = await res.json();
+    const procs = Array.isArray(data) ? data : data.processes;
+    const diag = data.diag;
+
+    // Diagnostic banner
+    if (diag) {
+      const dEl = document.getElementById('proc-diag');
+      const infoEl = document.getElementById('proc-info');
+      if (!diag.host_pid_active) {
+        dEl.style.display = '';
+        dEl.style.borderColor = 'var(--danger)';
+        dEl.style.color = 'var(--danger)';
+        dEl.innerHTML = `⚠ host_pid INAKTIV — Container sieht nur sich selbst.<br>
+          PID 1 = "${diag.pid1_name}" · /proc enthält ${diag.proc_pids_total} PIDs · psutil zeigt ${diag.psutil_visible} · denied: ${diag.access_denied}<br>
+          → Addon in HA <b>deinstallieren und neu installieren</b>, damit der Container mit host_pid:true neu erstellt wird.`;
+        infoEl.textContent = `${diag.psutil_visible} Prozesse (nur Container) — sortiert nach:`;
+      } else {
+        dEl.style.display = 'none';
+        infoEl.textContent = `Top 60 von ${diag.psutil_visible} Prozessen — sortiert nach:`;
+      }
+    }
+
     const tbody = document.getElementById('proc-body');
     if (!procs.length) {
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-dim)">Keine Prozesse</td></tr>';
