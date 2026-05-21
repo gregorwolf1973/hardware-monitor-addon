@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.02
+- Erweiterte Privilegien (full_access, SYS_ADMIN, DAC_READ_SEARCH) damit Host-Prozesse zuverlässig sichtbar werden
+
 ## 1.01
 - Fix: host_pid aktiviert — jetzt werden alle Prozesse aller Addons und des Host-Systems angezeigt
 

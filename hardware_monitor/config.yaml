@@ -1,6 +1,6 @@
 name: "Hardware Monitor"
 description: "Live-Übersicht der Hardware-Ressourcen: CPU, RAM, Disk, Netzwerk und Top-Prozesse"
-version: "1.01"
+version: "1.02"
 url: "https://github.com/gregorwolf1973/hardware-monitor-addon"
 slug: "hardware_monitor"
 init: false
@@ -17,7 +17,10 @@ panel_title: "Hardware Monitor"
 host_network: true
 host_pid: true
 privileged:
+  - SYS_ADMIN
   - SYS_PTRACE
+  - DAC_READ_SEARCH
+full_access: true
 apparmor: false
 options: {}
 schema: {}
