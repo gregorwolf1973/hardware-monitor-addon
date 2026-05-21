@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.07
+- Zurück zum HA-Base-Image (Supervisor erlaubt nur ghcr.io/home-assistant/*)
+- ENTRYPOINT [] umgeht den s6-Init, sodass host_pid:true funktioniert
+
 ## 1.06
 - Basisimage gewechselt: weg von HAs s6-Image (Konflikt mit host_pid), hin zu python:3.12-alpine
 - s6-overlay verlangt zwingend PID 1 — mit host_pid:true unmöglich
