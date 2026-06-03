@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.11
+- Re-Release wegen Versionsparsing: "1.10" wurde von HA u.U. als 1.1 gelesen und damit als älter als 1.09 eingestuft
+
 ## 1.10
 - Container-Namen statt nur IDs: liest /proc/<pid>/root/etc/hostname und cached pro Container
 - Erkennt "homeassistant" explizit als "HA Core"
