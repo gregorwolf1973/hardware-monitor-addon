@@ -88,9 +88,9 @@ def index():
 
 @app.route("/api/hardware")
 def hardware():
-    # CPU
-    cpu_percent = psutil.cpu_percent(interval=0.3)
-    cpu_per_core = psutil.cpu_percent(percpu=True)
+    # CPU – derive global from per-core so both share the same sample window
+    cpu_per_core = psutil.cpu_percent(interval=0.3, percpu=True)
+    cpu_percent = round(sum(cpu_per_core) / len(cpu_per_core), 1) if cpu_per_core else 0.0
     cpu_count_phys = psutil.cpu_count(logical=False) or 1
     cpu_count_logi = psutil.cpu_count(logical=True) or 1
     freq = psutil.cpu_freq()

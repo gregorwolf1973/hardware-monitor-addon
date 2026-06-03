@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.3.2
+- Fix: global CPU load no longer disagrees with the per-core values. Both are
+  now derived from the same 0.3 s sample (previously the global value used a
+  0.3 s window while per-core measured since the previous API call).
+
 ## 2.3.1
 - Revert CPU% normalization from 2.3.0 — back to raw psutil scale
   (1 core = 100%, multi-threaded processes can exceed 100%)
