@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.3.1
+- Revert CPU% normalization from 2.3.0 — back to raw psutil scale
+  (1 core = 100%, multi-threaded processes can exceed 100%)
+
 ## 2.3.0
 - CPU% per process is now normalized to whole-machine load (divided by logical
   core count). Sum of all process CPU% now matches the top CPU gauge — instead

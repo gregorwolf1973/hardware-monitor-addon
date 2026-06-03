@@ -205,9 +205,6 @@ def processes():
 
     procs = []
     access_denied = 0
-    # Normalize per-process CPU% so 100% == whole machine (psutil reports
-    # 1 core = 100%, i.e. up to N*100% on N logical cores).
-    logical_cores = psutil.cpu_count(logical=True) or 1
     for proc in psutil.process_iter(["pid", "name", "username", "cpu_percent",
                                      "memory_info", "memory_percent", "status", "cmdline"]):
         try:
@@ -238,7 +235,7 @@ def processes():
                 "container_name": container_name,
                 "source": source,
                 "label": label,
-                "cpu": round((info["cpu_percent"] or 0) / logical_cores, 1),
+                "cpu": round(info["cpu_percent"] or 0, 1),
                 "ram_mb": ram_mb,
                 "ram_percent": round(info["memory_percent"] or 0, 1),
                 "status": info["status"],
