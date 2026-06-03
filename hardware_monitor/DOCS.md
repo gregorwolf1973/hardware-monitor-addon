@@ -24,6 +24,24 @@ Live overview of CPU, RAM, disks, network, temperatures and processes — across
     docker container name, or host.
 - **Theme toggle** in the top-right switches between dark and light.
 
+## CPU sample window
+
+The **CPU sample** selector (next to *Refresh*) controls how long psutil
+averages CPU usage for each measurement. Default is **3 s**.
+
+- **Short windows (100–500 ms)** catch instantaneous spikes. The number jumps
+  around a lot and is often higher than the "true" average, because the act
+  of polling itself (Flask + iterating ~200 `/proc/<pid>/*` entries) shows up
+  as load during the measurement.
+- **Long windows (2–3 s)** average over much more idle time and match what
+  other tools show — e.g. Home Assistant's built-in System Monitor (which
+  aggregates over 5 minutes) typically reports values close to a 3 s sample.
+
+If Hardware Monitor shows 10–15 % while another tool reports 3–5 %, the
+difference is mostly the observer effect (polling cost) plus shorter sample
+window. Switch to **3 s** to get a calmer reading; increase the **Refresh**
+interval to reduce the polling cost.
+
 ## Why are some processes missing?
 
 If you see a yellow diagnostic banner ("host_pid INACTIVE — container only sees

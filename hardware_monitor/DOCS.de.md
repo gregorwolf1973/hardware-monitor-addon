@@ -24,6 +24,24 @@ Live-Übersicht über CPU, RAM, Datenträger, Netzwerk, Temperaturen und Prozess
     Docker-Containername oder Host.
 - **Theme-Umschalter** oben rechts wechselt zwischen Dark und Light.
 
+## CPU-Messfenster
+
+Der **CPU sample**-Schalter (neben *Refresh*) bestimmt, wie lange psutil die
+CPU-Last für jede Messung mittelt. Standard ist **3 s**.
+
+- **Kurze Fenster (100–500 ms)** erwischen einzelne Spitzen. Der Wert
+  springt stark und liegt häufig **über** dem "echten" Mittelwert, weil das
+  Polling selbst (Flask + Iterieren über ~200 `/proc/<pid>/*`-Einträge)
+  genau während der Messung Last erzeugt.
+- **Lange Fenster (2–3 s)** mitteln über viel mehr Idle-Zeit und passen
+  besser zu anderen Tools — z. B. zeigt der eingebaute HA System Monitor
+  (5‑Minuten-Aggregation) Werte, die nah an einem 3‑s-Sample liegen.
+
+Wenn Hardware Monitor 10–15 % anzeigt, während ein anderes Tool 3–5 %
+meldet, ist die Differenz hauptsächlich Beobachter-Effekt (Polling-Kosten)
+plus kürzeres Messfenster. **3 s** liefert ruhigere Werte; ein längeres
+**Refresh**-Intervall reduziert die Polling-Last zusätzlich.
+
 ## Warum fehlen Prozesse?
 
 Wenn das gelbe Diagnose-Banner erscheint ("host_pid INAKTIV — Container sieht

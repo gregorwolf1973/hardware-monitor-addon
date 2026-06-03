@@ -372,11 +372,11 @@
         CPU sample
         <select id="cpu-ms-sel" style="background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:4px 8px; color:var(--text-bright); font-size:0.8rem;">
           <option value="100">100 ms</option>
-          <option value="300" selected>300 ms</option>
+          <option value="300">300 ms</option>
           <option value="500">500 ms</option>
           <option value="1000">1 s</option>
           <option value="2000">2 s</option>
-          <option value="3000">3 s</option>
+          <option value="3000" selected>3 s</option>
         </select>
       </label>
     </div>
@@ -449,7 +449,7 @@ document.getElementById('theme-btn').addEventListener('click', () => {
 let currentSort = localStorage.getItem('hm-sort') || 'cpu';
 let currentFilter = localStorage.getItem('hm-filter') || 'all';
 let refreshMs = parseInt(localStorage.getItem('hm-refresh') || '5000', 10);
-let cpuSampleMs = parseInt(localStorage.getItem('hm-cpu-ms') || '300', 10);
+let cpuSampleMs = parseInt(localStorage.getItem('hm-cpu-ms') || '3000', 10);
 
 function activateBtn(group, key, attr) {
   document.querySelectorAll(`[data-group="${group}"] .sort-btn`).forEach(b => {

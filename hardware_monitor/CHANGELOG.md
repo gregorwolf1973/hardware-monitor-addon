@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.4.1
+- Default CPU sample window raised from 300 ms to 3 s — calmer values, less
+  influenced by the polling overhead, closer to HA's own System Monitor
+- Added "CPU sample window" section to DOCS.md / DOCS.de.md explaining the
+  trade-off and the observer effect
+
 ## 2.4.0
 - New UI control: **CPU sample** (100 ms / 300 ms / 500 ms / 1 s / 2 s / 3 s).
   Sets how long psutil averages CPU usage for each refresh — longer = smoother
