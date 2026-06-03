@@ -45,16 +45,24 @@ def hardware():
     mem = psutil.virtual_memory()
     swap = psutil.swap_memory()
 
-    # Disks
+    # Disks – dedupe Docker bind-mounts that point to the same device
     disks = []
+    seen_devices = set()
+    SKIP_PREFIXES = ("/etc/", "/run/", "/proc/", "/sys/", "/dev/")
     for part in psutil.disk_partitions(all=False):
-        # skip tiny/virtual mounts
         if any(x in part.fstype for x in ("squash", "tmpfs", "devtmpfs", "overlay")):
+            continue
+        # Skip single-file bind-mounts from the container (resolv.conf, hostname, hosts ...)
+        if part.mountpoint.startswith(SKIP_PREFIXES):
+            continue
+        # Only one entry per real device
+        if part.device in seen_devices:
             continue
         try:
             usage = psutil.disk_usage(part.mountpoint)
             if usage.total < 1024 * 1024:
                 continue
+            seen_devices.add(part.device)
             disks.append({
                 "device": part.device,
                 "mountpoint": part.mountpoint,

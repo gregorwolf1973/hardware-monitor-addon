@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.09
+- Fix: Datenträgerliste zeigte denselben /dev/sdaX mehrfach, weil Docker einzelne Dateien (/etc/resolv.conf, /etc/hostname …) als Bind-Mounts mit eigener Mountpoint einfügt
+- Dedupliziert jetzt nach Device und filtert /etc/, /run/, /proc/, /sys/, /dev/ Bind-Mounts heraus
+
 ## 1.08
 - Prozessliste: Kommandozeile, User und Container-/Addon-Badge je Prozess
 - Erkennt automatisch HA-Addon-Container und Docker-Container und kennzeichnet sie
