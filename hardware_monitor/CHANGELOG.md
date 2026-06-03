@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.4.0
+- New UI control: **CPU sample** (100 ms / 300 ms / 500 ms / 1 s / 2 s / 3 s).
+  Sets how long psutil averages CPU usage for each refresh — longer = smoother
+  values but the request blocks for that duration. Backend parameter
+  `?cpu_ms=` (clamped 50–3000), preference stored in localStorage.
+
 ## 2.3.2
 - Fix: global CPU load no longer disagrees with the per-core values. Both are
   now derived from the same 0.3 s sample (previously the global value used a

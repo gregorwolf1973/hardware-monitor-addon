@@ -368,6 +368,17 @@
           <option value="0">off</option>
         </select>
       </label>
+      <label style="font-size:0.78rem; color:var(--text-dim); display:flex; align-items:center; gap:6px;" title="How long psutil samples CPU usage for each refresh. Longer = smoother values, but the request blocks for that time.">
+        CPU sample
+        <select id="cpu-ms-sel" style="background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:4px 8px; color:var(--text-bright); font-size:0.8rem;">
+          <option value="100">100 ms</option>
+          <option value="300" selected>300 ms</option>
+          <option value="500">500 ms</option>
+          <option value="1000">1 s</option>
+          <option value="2000">2 s</option>
+          <option value="3000">3 s</option>
+        </select>
+      </label>
     </div>
   </div>
   <div id="proc-diag" style="display:none; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; margin-bottom:10px; font-size:0.78rem; color:var(--text-dim); font-family:monospace;"></div>
@@ -438,6 +449,7 @@ document.getElementById('theme-btn').addEventListener('click', () => {
 let currentSort = localStorage.getItem('hm-sort') || 'cpu';
 let currentFilter = localStorage.getItem('hm-filter') || 'all';
 let refreshMs = parseInt(localStorage.getItem('hm-refresh') || '5000', 10);
+let cpuSampleMs = parseInt(localStorage.getItem('hm-cpu-ms') || '300', 10);
 
 function activateBtn(group, key, attr) {
   document.querySelectorAll(`[data-group="${group}"] .sort-btn`).forEach(b => {
@@ -477,10 +489,18 @@ refreshSel.addEventListener('change', () => {
   setupRefresh();
 });
 
+const cpuMsSel = document.getElementById('cpu-ms-sel');
+cpuMsSel.value = String(cpuSampleMs);
+cpuMsSel.addEventListener('change', () => {
+  cpuSampleMs = parseInt(cpuMsSel.value, 10);
+  localStorage.setItem('hm-cpu-ms', String(cpuSampleMs));
+  loadHardware();
+});
+
 /* ── Fetch hardware ── */
 async function loadHardware() {
   try {
-    const res = await fetch('api/hardware');
+    const res = await fetch('api/hardware?cpu_ms=' + cpuSampleMs);
     const d = await res.json();
 
     // System

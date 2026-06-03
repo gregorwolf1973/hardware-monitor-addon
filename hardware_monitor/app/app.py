@@ -88,8 +88,14 @@ def index():
 
 @app.route("/api/hardware")
 def hardware():
-    # CPU – derive global from per-core so both share the same sample window
-    cpu_per_core = psutil.cpu_percent(interval=0.3, percpu=True)
+    # CPU – derive global from per-core so both share the same sample window.
+    # Sample duration is configurable via ?cpu_ms= (50..3000), default 300 ms.
+    try:
+        cpu_ms = int(request.args.get("cpu_ms", 300))
+    except ValueError:
+        cpu_ms = 300
+    cpu_ms = max(50, min(3000, cpu_ms))
+    cpu_per_core = psutil.cpu_percent(interval=cpu_ms / 1000.0, percpu=True)
     cpu_percent = round(sum(cpu_per_core) / len(cpu_per_core), 1) if cpu_per_core else 0.0
     cpu_count_phys = psutil.cpu_count(logical=False) or 1
     cpu_count_logi = psutil.cpu_count(logical=True) or 1
@@ -159,6 +165,7 @@ def hardware():
             "freq_current": round(freq.current) if freq else None,
             "freq_max": round(freq.max) if freq else None,
             "per_core": cpu_per_core,
+            "sample_ms": cpu_ms,
         },
         "memory": {
             "total": mem.total,
