@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.3.0
+- CPU% per process is now normalized to whole-machine load (divided by logical
+  core count). Sum of all process CPU% now matches the top CPU gauge — instead
+  of the raw psutil scale where a single busy core showed as 100% and a
+  multi-threaded process could exceed 100%.
+
 ## 2.2.0
 - UI fully translated to English
 - Added `icon.png` and `logo.png`
