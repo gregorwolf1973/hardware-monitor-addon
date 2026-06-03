@@ -564,10 +564,18 @@ async function loadProcesses() {
       const ramBarColor = p.ram_percent >= 80 ? '#f44336' : p.ram_percent >= 50 ? '#ffb74d' : '#66bb6a';
       let badge = '';
       if (p.container) {
-        if (p.container.startsWith('addon:'))
-          badge = `<span class="badge badge-addon" title="HA Addon">${esc(p.container.slice(6))}</span>`;
-        else
-          badge = `<span class="badge badge-docker" title="Docker Container">docker ${esc(p.container)}</span>`;
+        const name = p.container_name || '';
+        // HA addon hostnames use slug-with-dashes; HA Core = "homeassistant"
+        const isHaCore = name === 'homeassistant';
+        const looksLikeAddon = name && !isHaCore && !/^[0-9a-f]{12}$/.test(name);
+        if (isHaCore) {
+          badge = `<span class="badge badge-addon" title="Home Assistant Core (${esc(p.container)})">HA Core</span>`;
+        } else if (looksLikeAddon) {
+          badge = `<span class="badge badge-addon" title="Container: ${esc(name)} · id: ${esc(p.container)}">${esc(name)}</span>`;
+        } else {
+          const label = name ? esc(name) : 'docker ' + esc(p.container);
+          badge = `<span class="badge badge-docker" title="Docker Container ${esc(p.container)}">${label}</span>`;
+        }
       }
       const userBadge = p.user ? `<span class="badge badge-user" title="User">${esc(p.user)}</span>` : '';
       const cmd = p.cmdline && p.cmdline !== p.name

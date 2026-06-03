@@ -1,12 +1,31 @@
 #!/usr/bin/env python3
 """Hardware Monitor - Flask Web GUI"""
 import os
+import re
 import time
 import platform
 import psutil
 from flask import Flask, jsonify, request, render_template
 
 app = Flask(__name__)
+
+# Cache for container hostnames (container_id -> name)
+_container_name_cache = {}
+
+def _container_hostname(container_id, pid):
+    """Read container's /etc/hostname via /proc/<pid>/root – cached per container."""
+    if not container_id:
+        return ""
+    if container_id in _container_name_cache:
+        return _container_name_cache[container_id]
+    name = ""
+    try:
+        with open(f"/proc/{pid}/root/etc/hostname") as f:
+            name = f.read().strip()
+    except Exception:
+        pass
+    _container_name_cache[container_id] = name
+    return name
 
 # ── network delta tracking ──────────────────────────────────────
 _net_last = {"time": time.time(), "sent": 0, "recv": 0}
@@ -153,20 +172,16 @@ def processes():
             ram_mb = (info["memory_info"].rss // (1024 * 1024)) if info["memory_info"] else 0
             cmdline_list = info.get("cmdline") or []
             cmdline = " ".join(cmdline_list).strip()
-            # /proc/<pid>/cgroup for docker container hint
-            container = ""
+            # /proc/<pid>/cgroup for docker container ID + lookup hostname
+            container_id = ""
+            container_name = ""
             try:
                 with open(f"/proc/{info['pid']}/cgroup") as f:
                     cg = f.read()
-                    # match docker / addon container id
-                    import re as _re
-                    m = _re.search(r"docker[/-]([a-f0-9]{12,64})", cg)
+                    m = re.search(r"docker[/-]([a-f0-9]{12,64})", cg)
                     if m:
-                        container = m.group(1)[:12]
-                    elif "addon_" in cg:
-                        am = _re.search(r"addon_([a-z0-9_]+)", cg)
-                        if am:
-                            container = "addon:" + am.group(1)
+                        container_id = m.group(1)[:12]
+                        container_name = _container_hostname(container_id, info["pid"])
             except Exception:
                 pass
 
@@ -175,7 +190,8 @@ def processes():
                 "name": info["name"] or "?",
                 "user": info.get("username") or "",
                 "cmdline": cmdline,
-                "container": container,
+                "container": container_id,
+                "container_name": container_name,
                 "cpu": round(info["cpu_percent"] or 0, 1),
                 "ram_mb": ram_mb,
                 "ram_percent": round(info["memory_percent"] or 0, 1),

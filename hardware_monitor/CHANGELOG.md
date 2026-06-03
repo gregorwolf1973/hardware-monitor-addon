@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.10
+- Container-Namen statt nur IDs: liest /proc/<pid>/root/etc/hostname und cached pro Container
+- Erkennt "homeassistant" explizit als "HA Core"
+- HA-Addon-Slugs erscheinen jetzt direkt im Badge (z. B. "hardware-monitor")
+
 ## 1.09
 - Fix: Datenträgerliste zeigte denselben /dev/sdaX mehrfach, weil Docker einzelne Dateien (/etc/resolv.conf, /etc/hostname …) als Bind-Mounts mit eigener Mountpoint einfügt
 - Dedupliziert jetzt nach Device und filtert /etc/, /run/, /proc/, /sys/, /dev/ Bind-Mounts heraus
