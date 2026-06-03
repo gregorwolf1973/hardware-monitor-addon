@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.0
+- Umstellung auf echtes Semver (vorher mehrdeutig: 1.10 wurde als 1.1 geparst)
+- Funktional identisch zu 1.11
+
 ## 1.11
 - Re-Release wegen Versionsparsing: "1.10" wurde von HA u.U. als 1.1 gelesen und damit als älter als 1.09 eingestuft
 
