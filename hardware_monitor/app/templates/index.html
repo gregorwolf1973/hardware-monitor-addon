@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -257,8 +257,8 @@
     Hardware Monitor
   </h1>
   <div class="header-right">
-    <span id="refresh-badge">Laden…</span>
-    <button class="btn-icon" id="theme-btn" title="Theme wechseln">
+    <span id="refresh-badge">Loading…</span>
+    <button class="btn-icon" id="theme-btn" title="Toggle theme">
       <svg id="theme-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
         <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
@@ -275,34 +275,34 @@
   <p class="section-title">System</p>
   <div class="sysinfo" id="sysinfo">
     <div class="sysinfo-item"><span class="si-label">Host</span><span class="si-val skeleton">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
-    <div class="sysinfo-item"><span class="si-label">Laufzeit</span><span class="si-val skeleton">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
-    <div class="sysinfo-item"><span class="si-label">Plattform</span><span class="si-val skeleton">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+    <div class="sysinfo-item"><span class="si-label">Uptime</span><span class="si-val skeleton">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+    <div class="sysinfo-item"><span class="si-label">Platform</span><span class="si-val skeleton">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
   </div>
 
   <!-- ── CPU ── -->
   <p class="section-title">CPU</p>
   <div class="cards" id="cpu-cards">
     <div class="card">
-      <div class="card-label">Auslastung</div>
+      <div class="card-label">Load</div>
       <div class="card-value" id="cpu-pct"><span class="skeleton"></span></div>
       <div class="bar-wrap"><div class="bar-fill bar-ok" id="cpu-bar" style="width:0%"></div></div>
     </div>
     <div class="card">
-      <div class="card-label">Kerne</div>
+      <div class="card-label">Cores</div>
       <div class="card-value" id="cpu-cores"><span class="skeleton"></span></div>
       <div class="card-sub" id="cpu-freq"></div>
     </div>
     <div class="card" style="grid-column: span 2;">
-      <div class="card-label">Pro Kern</div>
+      <div class="card-label">Per core</div>
       <div class="cores-grid" id="cores-grid"></div>
     </div>
   </div>
 
-  <!-- ── RAM ── -->
-  <p class="section-title">Arbeitsspeicher</p>
+  <!-- ── Memory ── -->
+  <p class="section-title">Memory</p>
   <div class="cards" id="mem-cards">
     <div class="card">
-      <div class="card-label">RAM Auslastung</div>
+      <div class="card-label">RAM usage</div>
       <div class="card-value" id="mem-pct"><span class="skeleton"></span></div>
       <div class="card-sub" id="mem-detail"></div>
       <div class="bar-wrap"><div class="bar-fill bar-ok" id="mem-bar" style="width:0%"></div></div>
@@ -316,39 +316,39 @@
   </div>
 
   <!-- ── Network ── -->
-  <p class="section-title">Netzwerk</p>
+  <p class="section-title">Network</p>
   <div class="cards">
     <div class="card">
       <div class="card-label">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-        Durchsatz
+        Throughput
       </div>
-      <div class="net-row"><span class="net-label">↑ Senden</span><span class="net-val" id="net-tx">–</span></div>
-      <div class="net-row"><span class="net-label">↓ Empfangen</span><span class="net-val" id="net-rx">–</span></div>
+      <div class="net-row"><span class="net-label">↑ Upload</span><span class="net-val" id="net-tx">–</span></div>
+      <div class="net-row"><span class="net-label">↓ Download</span><span class="net-val" id="net-rx">–</span></div>
       <div class="net-row" style="margin-top:10px; padding-top:8px; border-top:1px solid var(--border)">
-        <span class="net-label">Gesamt Gesendet</span><span class="net-val" id="net-total-tx">–</span>
+        <span class="net-label">Total sent</span><span class="net-val" id="net-total-tx">–</span>
       </div>
-      <div class="net-row"><span class="net-label">Gesamt Empfangen</span><span class="net-val" id="net-total-rx">–</span></div>
+      <div class="net-row"><span class="net-label">Total received</span><span class="net-val" id="net-total-rx">–</span></div>
     </div>
   </div>
 
   <!-- ── Temperatures ── -->
   <div id="temp-section" style="display:none">
-    <p class="section-title">Temperaturen</p>
+    <p class="section-title">Temperatures</p>
     <div class="temp-grid" id="temp-grid"></div>
   </div>
 
   <!-- ── Disks ── -->
-  <p class="section-title">Datenträger</p>
+  <p class="section-title">Storage</p>
   <div class="disk-list" id="disk-list"></div>
 
   <!-- ── Processes ── -->
-  <p class="section-title" style="margin-top:30px">Prozesse</p>
+  <p class="section-title" style="margin-top:30px">Processes</p>
   <div class="proc-header">
-    <span id="proc-info" style="font-size:0.8rem; color:var(--text-dim)">Top 60 Prozesse</span>
+    <span id="proc-info" style="font-size:0.8rem; color:var(--text-dim)">Top 60 processes</span>
     <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
       <div class="sort-btns" data-group="filter">
-        <button class="sort-btn active" data-filter="all">Alle</button>
+        <button class="sort-btn active" data-filter="all">All</button>
         <button class="sort-btn" data-filter="ha">HA</button>
         <button class="sort-btn" data-filter="host">Host</button>
         <button class="sort-btn" data-filter="docker">Docker</button>
@@ -365,7 +365,7 @@
           <option value="5000" selected>5 s</option>
           <option value="10000">10 s</option>
           <option value="30000">30 s</option>
-          <option value="0">aus</option>
+          <option value="0">off</option>
         </select>
       </label>
     </div>
@@ -383,7 +383,7 @@
       </tr>
     </thead>
     <tbody id="proc-body">
-      <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-dim)">Lade Prozesse…</td></tr>
+      <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-dim)">Loading processes…</td></tr>
     </tbody>
   </table>
 
@@ -486,8 +486,8 @@ async function loadHardware() {
     // System
     document.getElementById('sysinfo').innerHTML = `
       <div class="sysinfo-item"><span class="si-label">Host</span><span class="si-val">${d.system.hostname}</span></div>
-      <div class="sysinfo-item"><span class="si-label">Laufzeit</span><span class="si-val">${fmt.uptime(d.system.uptime_seconds)}</span></div>
-      <div class="sysinfo-item"><span class="si-label">Plattform</span><span class="si-val">${d.system.platform}</span></div>
+      <div class="sysinfo-item"><span class="si-label">Uptime</span><span class="si-val">${fmt.uptime(d.system.uptime_seconds)}</span></div>
+      <div class="sysinfo-item"><span class="si-label">Platform</span><span class="si-val">${d.system.platform}</span></div>
     `;
 
     // CPU
@@ -510,7 +510,7 @@ async function loadHardware() {
     document.getElementById('mem-pct').textContent = fmt.pct(memPct);
     document.getElementById('mem-detail').textContent =
       fmt.bytes(d.memory.used) + ' / ' + fmt.bytes(d.memory.total) +
-      ' (frei: ' + fmt.bytes(d.memory.available) + ')';
+      ' (free: ' + fmt.bytes(d.memory.available) + ')';
     setBar(document.getElementById('mem-bar'), memPct);
 
     const swapPct = d.swap.percent;
@@ -518,7 +518,7 @@ async function loadHardware() {
     document.getElementById('swap-detail').textContent =
       d.swap.total > 0
         ? fmt.bytes(d.swap.used) + ' / ' + fmt.bytes(d.swap.total)
-        : 'kein Swap';
+        : 'no swap';
     setBar(document.getElementById('swap-bar'), swapPct);
 
     // Network
@@ -545,7 +545,7 @@ async function loadHardware() {
     // Disks
     const dl = document.getElementById('disk-list');
     if (d.disks.length === 0) {
-      dl.innerHTML = '<p style="color:var(--text-dim);font-size:.85rem">Keine Datenträger gefunden.</p>';
+      dl.innerHTML = '<p style="color:var(--text-dim);font-size:.85rem">No disks found.</p>';
     } else {
       dl.innerHTML = d.disks.map(disk => `
         <div class="disk-item">
@@ -555,9 +555,9 @@ async function loadHardware() {
           </div>
           <div class="bar-wrap"><div class="bar-fill ${barClass(disk.percent)}" style="width:${disk.percent}%"></div></div>
           <div class="disk-stats">
-            <span><strong>${fmt.bytes(disk.used)}</strong> belegt</span>
-            <span><strong>${fmt.bytes(disk.free)}</strong> frei</span>
-            <span><strong>${fmt.bytes(disk.total)}</strong> gesamt</span>
+            <span><strong>${fmt.bytes(disk.used)}</strong> used</span>
+            <span><strong>${fmt.bytes(disk.free)}</strong> free</span>
+            <span><strong>${fmt.bytes(disk.total)}</strong> total</span>
             <span><strong>${disk.percent.toFixed(1)} %</strong></span>
           </div>
         </div>
@@ -566,10 +566,10 @@ async function loadHardware() {
 
     // Badge
     const badge = document.getElementById('refresh-badge');
-    badge.textContent = 'Live · ' + new Date().toLocaleTimeString('de-DE');
+    badge.textContent = 'Live · ' + new Date().toLocaleTimeString();
     badge.classList.add('live');
   } catch(e) {
-    document.getElementById('refresh-badge').textContent = 'Fehler';
+    document.getElementById('refresh-badge').textContent = 'Error';
     document.getElementById('refresh-badge').classList.remove('live');
   }
 }
@@ -582,7 +582,7 @@ async function loadProcesses() {
     let procs = Array.isArray(data) ? data : data.processes;
     const diag = data.diag;
 
-    // client-side filter (backend also filters, but be safe)
+    // Client-side filter (backend also filters; this is a safety net)
     procs = procs.filter(p => {
       if (currentFilter === 'all') return true;
       if (currentFilter === 'host') return p.source === 'host';
@@ -599,21 +599,21 @@ async function loadProcesses() {
         dEl.style.display = '';
         dEl.style.borderColor = 'var(--danger)';
         dEl.style.color = 'var(--danger)';
-        dEl.innerHTML = `⚠ <b>Protection Mode aktiv</b> — HA blockiert host_pid trotz korrekter Config.<br>
+        dEl.innerHTML = `⚠ <b>Protection Mode is on</b> — Home Assistant is blocking host_pid despite the correct configuration.<br>
           PID 1 = "${diag.pid1_name}" · /proc: ${diag.proc_pids_total} PIDs · psutil: ${diag.psutil_visible}<br>
-          <b>Lösung:</b> Einstellungen → Add-ons → Hardware Monitor → Tab <b>"Info"</b> →
-          Schalter <b>"Protection mode"</b> AUSSCHALTEN → Addon neu starten.<br>
-          (HA aktiviert Protection bei Custom-Repos automatisch und blockiert dann host_pid, full_access und privilegierte Caps.)`;
-        infoEl.textContent = `${diag.psutil_visible} Prozesse (nur Container) — sortiert nach:`;
+          <b>Fix:</b> Settings → Add-ons → Hardware Monitor → <b>Info</b> tab →
+          switch <b>"Protection mode"</b> OFF → restart the add-on.<br>
+          (HA enables Protection automatically for custom repositories, which disables host_pid and privileged capabilities.)`;
+        infoEl.textContent = `${diag.psutil_visible} processes (container-only) — sorted by:`;
       } else {
         dEl.style.display = 'none';
-        infoEl.textContent = `Top 60 von ${diag.psutil_visible} Prozessen — sortiert nach:`;
+        infoEl.textContent = `Top 60 of ${diag.psutil_visible} processes`;
       }
     }
 
     const tbody = document.getElementById('proc-body');
     if (!procs.length) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-dim)">Keine Prozesse</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-dim)">No processes</td></tr>';
       return;
     }
     const esc = s => (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -621,6 +621,7 @@ async function loadProcesses() {
       const cpuCls = p.cpu >= 80 ? 'cpu-high' : p.cpu >= 30 ? 'cpu-warn' : '';
       const statusCls = p.status === 'running' ? 'running' : '';
       const ramBarColor = p.ram_percent >= 80 ? '#f44336' : p.ram_percent >= 50 ? '#ffb74d' : '#66bb6a';
+
       // Source-based badge (set by backend classifier)
       let badge = '';
       const src = p.source || 'host';
@@ -635,6 +636,7 @@ async function loadProcesses() {
       } else if (src === 'docker') {
         badge = `<span class="badge badge-docker" title="${tt}">docker ${esc(lbl)}</span>`;
       }
+
       const userBadge = p.user ? `<span class="badge badge-user" title="User">${esc(p.user)}</span>` : '';
       const cmd = p.cmdline && p.cmdline !== p.name
         ? `<div class="cmdline" title="${esc(p.cmdline)}">${esc(p.cmdline)}</div>` : '';

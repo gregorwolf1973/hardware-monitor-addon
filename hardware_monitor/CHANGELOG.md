@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.2.0
+- UI fully translated to English
+- Added `icon.png` and `logo.png`
+- New documentation: `README.md` / `README.de.md` and `DOCS.md` / `DOCS.de.md`
+- Default browser locale used for timestamps (was hard-coded `de-DE`)
+
 ## 2.1.0
 - Filter-Chips: Alle / HA / Host / Docker
 - Refresh-Intervall einstellbar (2s, 5s, 10s, 30s, aus) — Wahl wird im Browser gespeichert
