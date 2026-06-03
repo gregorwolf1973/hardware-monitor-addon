@@ -27,6 +27,41 @@ def _container_hostname(container_id, pid):
     _container_name_cache[container_id] = name
     return name
 
+
+# cmdline → friendly name for HA system containers whose hostname is just a hex ID
+HA_SUPERVISOR_CMD_HINTS = (
+    ("python3 -m supervisor", "hassio_supervisor"),
+    ("coredns",                "hassio_dns"),
+    ("pulseaudio",             "hassio_audio"),
+    ("udevd",                  "hassio_observer"),
+    ("hassio-multicast",       "hassio_multicast"),
+    ("hassio-cli",             "hassio_cli"),
+)
+
+_HEX_NAME = re.compile(r"^[0-9a-f]{12,}$")
+
+def _classify(container_id, container_name, cmdline):
+    """Return (source, label) tuple.
+
+    source: host | ha_core | ha_supervisor | ha_addon | docker
+    label:  human readable name to display
+    """
+    if not container_id:
+        return "host", ""
+    if container_name == "homeassistant":
+        return "ha_core", "HA Core"
+    # HA system containers often have hex hostnames – guess via cmdline
+    if not container_name or _HEX_NAME.match(container_name):
+        for hint, label in HA_SUPERVISOR_CMD_HINTS:
+            if hint in cmdline:
+                return "ha_supervisor", label
+        return "docker", container_name or container_id
+    # hassio_* containers are also part of the HA system stack
+    if container_name.startswith("hassio") or container_name.startswith("hassio_"):
+        return "ha_supervisor", container_name
+    # everything else with a meaningful hostname → likely an addon
+    return "ha_addon", container_name
+
 # ── network delta tracking ──────────────────────────────────────
 _net_last = {"time": time.time(), "sent": 0, "recv": 0}
 
@@ -150,6 +185,11 @@ def hardware():
 @app.route("/api/processes")
 def processes():
     sort_by = request.args.get("sort", "cpu")  # name | cpu | ram
+    filter_by = request.args.get("filter", "all")  # all | host | ha | docker
+    try:
+        limit = max(10, min(500, int(request.args.get("limit", 60))))
+    except ValueError:
+        limit = 60
 
     # diagnostic – are we in host PID namespace?
     try:
@@ -185,6 +225,7 @@ def processes():
             except Exception:
                 pass
 
+            source, label = _classify(container_id, container_name, cmdline)
             procs.append({
                 "pid": info["pid"],
                 "name": info["name"] or "?",
@@ -192,6 +233,8 @@ def processes():
                 "cmdline": cmdline,
                 "container": container_id,
                 "container_name": container_name,
+                "source": source,
+                "label": label,
                 "cpu": round(info["cpu_percent"] or 0, 1),
                 "ram_mb": ram_mb,
                 "ram_percent": round(info["memory_percent"] or 0, 1),
@@ -202,6 +245,15 @@ def processes():
         except (psutil.NoSuchProcess, Exception):
             pass
 
+    # apply filter
+    if filter_by == "host":
+        procs = [p for p in procs if p["source"] == "host"]
+    elif filter_by == "docker":
+        procs = [p for p in procs if p["source"] == "docker"]
+    elif filter_by == "ha":
+        procs = [p for p in procs if p["source"].startswith("ha_")]
+    # else "all" → keep everything
+
     if sort_by == "name":
         procs.sort(key=lambda x: x["name"].lower())
     elif sort_by == "ram":
@@ -210,7 +262,7 @@ def processes():
         procs.sort(key=lambda x: x["cpu"], reverse=True)
 
     return jsonify({
-        "processes": procs[:60],
+        "processes": procs[:limit],
         "diag": {
             "proc_pids_total": proc_pid_count,
             "pid1_name": pid1_name,

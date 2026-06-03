@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.0
+- Filter-Chips: Alle / HA / Host / Docker
+- Refresh-Intervall einstellbar (2s, 5s, 10s, 30s, aus) — Wahl wird im Browser gespeichert
+- HA Supervisor und Helper-Container (hassio_dns, hassio_audio …) per cmdline-Heuristik erkannt und benannt
+- Sort- und Filter-Auswahl bleibt in localStorage gespeichert
+
 ## 2.0.0
 - Umstellung auf echtes Semver (vorher mehrdeutig: 1.10 wurde als 1.1 geparst)
 - Funktional identisch zu 1.11

@@ -1,6 +1,6 @@
 name: "Hardware Monitor"
 description: "Live-Übersicht der Hardware-Ressourcen: CPU, RAM, Disk, Netzwerk und Top-Prozesse"
-version: "2.0.0"
+version: "2.1.0"
 url: "https://github.com/gregorwolf1973/hardware-monitor-addon"
 slug: "hardware_monitor"
 init: false

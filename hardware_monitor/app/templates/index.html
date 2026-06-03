@@ -345,11 +345,29 @@
   <!-- ── Processes ── -->
   <p class="section-title" style="margin-top:30px">Prozesse</p>
   <div class="proc-header">
-    <span id="proc-info" style="font-size:0.8rem; color:var(--text-dim)">Top 60 Prozesse — sortiert nach:</span>
-    <div class="sort-btns">
-      <button class="sort-btn active" data-sort="cpu">CPU</button>
-      <button class="sort-btn" data-sort="ram">RAM</button>
-      <button class="sort-btn" data-sort="name">Name</button>
+    <span id="proc-info" style="font-size:0.8rem; color:var(--text-dim)">Top 60 Prozesse</span>
+    <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
+      <div class="sort-btns" data-group="filter">
+        <button class="sort-btn active" data-filter="all">Alle</button>
+        <button class="sort-btn" data-filter="ha">HA</button>
+        <button class="sort-btn" data-filter="host">Host</button>
+        <button class="sort-btn" data-filter="docker">Docker</button>
+      </div>
+      <div class="sort-btns" data-group="sort">
+        <button class="sort-btn active" data-sort="cpu">CPU</button>
+        <button class="sort-btn" data-sort="ram">RAM</button>
+        <button class="sort-btn" data-sort="name">Name</button>
+      </div>
+      <label style="font-size:0.78rem; color:var(--text-dim); display:flex; align-items:center; gap:6px;">
+        Refresh
+        <select id="refresh-sel" style="background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:4px 8px; color:var(--text-bright); font-size:0.8rem;">
+          <option value="2000">2 s</option>
+          <option value="5000" selected>5 s</option>
+          <option value="10000">10 s</option>
+          <option value="30000">30 s</option>
+          <option value="0">aus</option>
+        </select>
+      </label>
     </div>
   </div>
   <div id="proc-diag" style="display:none; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; margin-bottom:10px; font-size:0.78rem; color:var(--text-dim); font-family:monospace;"></div>
@@ -416,15 +434,47 @@ document.getElementById('theme-btn').addEventListener('click', () => {
   localStorage.setItem('hm-theme', next);
 });
 
-/* ── Sort state ── */
-let currentSort = 'cpu';
-document.querySelectorAll('.sort-btn').forEach(btn => {
+/* ── Sort / Filter / Refresh state ── */
+let currentSort = localStorage.getItem('hm-sort') || 'cpu';
+let currentFilter = localStorage.getItem('hm-filter') || 'all';
+let refreshMs = parseInt(localStorage.getItem('hm-refresh') || '5000', 10);
+
+function activateBtn(group, key, attr) {
+  document.querySelectorAll(`[data-group="${group}"] .sort-btn`).forEach(b => {
+    b.classList.toggle('active', b.dataset[attr] === key);
+  });
+}
+activateBtn('sort', currentSort, 'sort');
+activateBtn('filter', currentFilter, 'filter');
+
+document.querySelectorAll('[data-group="sort"] .sort-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     currentSort = btn.dataset.sort;
-    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+    localStorage.setItem('hm-sort', currentSort);
+    activateBtn('sort', currentSort, 'sort');
     loadProcesses();
   });
+});
+document.querySelectorAll('[data-group="filter"] .sort-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentFilter = btn.dataset.filter;
+    localStorage.setItem('hm-filter', currentFilter);
+    activateBtn('filter', currentFilter, 'filter');
+    loadProcesses();
+  });
+});
+
+const refreshSel = document.getElementById('refresh-sel');
+refreshSel.value = String(refreshMs);
+let refreshTimer = null;
+function setupRefresh() {
+  if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+  if (refreshMs > 0) refreshTimer = setInterval(refresh, refreshMs);
+}
+refreshSel.addEventListener('change', () => {
+  refreshMs = parseInt(refreshSel.value, 10);
+  localStorage.setItem('hm-refresh', String(refreshMs));
+  setupRefresh();
 });
 
 /* ── Fetch hardware ── */
@@ -527,10 +577,19 @@ async function loadHardware() {
 /* ── Fetch processes ── */
 async function loadProcesses() {
   try {
-    const res = await fetch(`api/processes?sort=${currentSort}`);
+    const res = await fetch(`api/processes?sort=${currentSort}&filter=${currentFilter}&limit=120`);
     const data = await res.json();
-    const procs = Array.isArray(data) ? data : data.processes;
+    let procs = Array.isArray(data) ? data : data.processes;
     const diag = data.diag;
+
+    // client-side filter (backend also filters, but be safe)
+    procs = procs.filter(p => {
+      if (currentFilter === 'all') return true;
+      if (currentFilter === 'host') return p.source === 'host';
+      if (currentFilter === 'docker') return p.source === 'docker';
+      if (currentFilter === 'ha') return p.source && p.source.startsWith('ha_');
+      return true;
+    }).slice(0, 60);
 
     // Diagnostic banner
     if (diag) {
@@ -562,20 +621,19 @@ async function loadProcesses() {
       const cpuCls = p.cpu >= 80 ? 'cpu-high' : p.cpu >= 30 ? 'cpu-warn' : '';
       const statusCls = p.status === 'running' ? 'running' : '';
       const ramBarColor = p.ram_percent >= 80 ? '#f44336' : p.ram_percent >= 50 ? '#ffb74d' : '#66bb6a';
+      // Source-based badge (set by backend classifier)
       let badge = '';
-      if (p.container) {
-        const name = p.container_name || '';
-        // HA addon hostnames use slug-with-dashes; HA Core = "homeassistant"
-        const isHaCore = name === 'homeassistant';
-        const looksLikeAddon = name && !isHaCore && !/^[0-9a-f]{12}$/.test(name);
-        if (isHaCore) {
-          badge = `<span class="badge badge-addon" title="Home Assistant Core (${esc(p.container)})">HA Core</span>`;
-        } else if (looksLikeAddon) {
-          badge = `<span class="badge badge-addon" title="Container: ${esc(name)} · id: ${esc(p.container)}">${esc(name)}</span>`;
-        } else {
-          const label = name ? esc(name) : 'docker ' + esc(p.container);
-          badge = `<span class="badge badge-docker" title="Docker Container ${esc(p.container)}">${label}</span>`;
-        }
+      const src = p.source || 'host';
+      const lbl = p.label || p.container_name || p.container || '';
+      const tt = `Container: ${esc(p.container_name || '–')} · id: ${esc(p.container || '–')}`;
+      if (src === 'ha_core') {
+        badge = `<span class="badge badge-addon" title="${tt}">HA Core</span>`;
+      } else if (src === 'ha_supervisor') {
+        badge = `<span class="badge badge-addon" title="${tt}">⚙ ${esc(lbl)}</span>`;
+      } else if (src === 'ha_addon') {
+        badge = `<span class="badge badge-addon" title="${tt}">${esc(lbl)}</span>`;
+      } else if (src === 'docker') {
+        badge = `<span class="badge badge-docker" title="${tt}">docker ${esc(lbl)}</span>`;
       }
       const userBadge = p.user ? `<span class="badge badge-user" title="User">${esc(p.user)}</span>` : '';
       const cmd = p.cmdline && p.cmdline !== p.name
@@ -604,7 +662,7 @@ async function refresh() {
 }
 
 refresh();
-setInterval(refresh, 5000);
+setupRefresh();
 </script>
 </body>
 </html>
