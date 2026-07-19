@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.4.3
+- Fix: sticky process-table header overlapped the first row inside the
+  horizontally-scrollable table wrapper — sticky positioning removed
+
 ## 2.4.2
 - UI: live sparklines for CPU load, RAM usage and network throughput (60-sample history)
 - UI: process search box (name / cmdline / PID / container), debounced, `/` shortcut to focus
