@@ -156,6 +156,10 @@ def hardware():
 
     # System
     uptime_sec = time.time() - psutil.boot_time()
+    try:
+        load1, load5, load15 = os.getloadavg()
+    except (OSError, AttributeError):
+        load1 = load5 = load15 = None
 
     return jsonify({
         "cpu": {
@@ -185,6 +189,7 @@ def hardware():
             "hostname": platform.node(),
             "platform": platform.system(),
             "uptime_seconds": uptime_sec,
+            "loadavg": [load1, load5, load15] if load1 is not None else None,
         },
     })
 

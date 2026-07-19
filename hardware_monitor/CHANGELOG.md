@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.4.2
+- UI: live sparklines for CPU load, RAM usage and network throughput (60-sample history)
+- UI: process search box (name / cmdline / PID / container), debounced, `/` shortcut to focus
+- UI: sortable process table columns — click headers, ascending/descending toggle, arrow indicators
+- UI: pause/resume auto-refresh button (Space); auto-pause when the browser tab is hidden
+- UI: keyboard shortcuts — `/` search, `Space` pause, `T` theme, `R` refresh now
+- UI: per-core chips now include a coloured usage bar (green/amber/red)
+- UI: refresh badge shows fetch duration and a coloured live/error dot
+- UI: click cmdline row to expand the full command
+- UI: system load average card (1 / 5 / 15 min) on Linux
+- UI: auto dark-mode via `prefers-color-scheme` when no theme override is set
+- UI: improved mobile layout, sticky/scrollable process table, tabular numerals
+
 ## 2.4.1
 - Default CPU sample window raised from 300 ms to 3 s — calmer values, less
   influenced by the polling overhead, closer to HA's own System Monitor
