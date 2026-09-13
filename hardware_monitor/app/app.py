@@ -5,6 +5,7 @@ import re
 import time
 import platform
 import psutil
+import socket
 from flask import Flask, jsonify, request, render_template
 
 app = Flask(__name__)
@@ -285,6 +286,25 @@ def processes():
     })
 
 
+def _install_safe_getfqdn():
+    """Keep the reverse DNS lookup during bind from killing the addon.
+
+    http.server calls socket.getfqdn() while binding. With host_network the
+    addon uses the router's DNS; a PTR record that is not valid UTF-8 then
+    raises UnicodeDecodeError and the addon never starts.
+    """
+    real_getfqdn = socket.getfqdn
+
+    def safe_getfqdn(name=""):
+        try:
+            return real_getfqdn(name)
+        except (UnicodeDecodeError, UnicodeError, OSError):
+            return name or "localhost"
+
+    socket.getfqdn = safe_getfqdn
+
+
 if __name__ == "__main__":
+    _install_safe_getfqdn()
     port = int(os.environ.get("PORT", 8200))
     app.run(host="0.0.0.0", port=port, debug=False)
