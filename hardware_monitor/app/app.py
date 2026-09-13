@@ -243,15 +243,19 @@ def processes():
             swap_total_mb += swap_mb
 
             source, label = _classify(container_id, container_name, cmdline)
+            addon = "" if source == "host" else _addon_display(label or container_name)
+            display = _display_name(info["name"], cmdline, addon)
             procs.append({
                 "pid": info["pid"],
                 "name": info["name"] or "?",
-                "user": info.get("username") or "",
+                "user": _username(info["pid"], info.get("username") or "", container_id),
                 "cmdline": cmdline,
                 "container": container_id,
                 "container_name": container_name,
                 "source": source,
                 "label": label,
+                "addon": addon,
+                "display": display,
                 "cpu": round(info["cpu_percent"] or 0, 1),
                 "ram_mb": ram_mb,
                 "ram_percent": round(info["memory_percent"] or 0, 1),
@@ -281,8 +285,36 @@ def processes():
     else:
         procs.sort(key=lambda x: x["cpu"], reverse=True)
 
+    groups = {}
+    for p in procs:
+        key = p["container_name"] or p["container"] or "host"
+        g = groups.get(key)
+        if g is None:
+            g = groups[key] = {
+                "key": key,
+                "label": p["addon"] or ("Host" if p["source"] == "host" else key),
+                "source": p["source"],
+                "count": 0, "cpu": 0.0, "ram_mb": 0, "ram_percent": 0.0, "swap_mb": 0,
+                "top": [],
+            }
+        g["count"] += 1
+        g["cpu"] += p["cpu"]
+        g["ram_mb"] += p["ram_mb"]
+        g["ram_percent"] += p["ram_percent"]
+        g["swap_mb"] += p["swap_mb"]
+        if len(g["top"]) < 10:      # procs is already sorted, so this is the top of the group
+            g["top"].append(p)
+
+    group_key = {"name": lambda g: g["label"].lower(), "ram": lambda g: g["ram_mb"],
+                 "swap": lambda g: g["swap_mb"]}.get(sort_by, lambda g: g["cpu"])
+    group_list = sorted(groups.values(), key=group_key, reverse=(sort_by != "name"))
+    for g in group_list:
+        g["cpu"] = round(g["cpu"], 1)
+        g["ram_percent"] = round(g["ram_percent"], 1)
+
     return jsonify({
         "processes": procs[:limit],
+        "groups": group_list,
         "diag": {
             "proc_pids_total": proc_pid_count,
             "pid1_name": pid1_name,
@@ -292,6 +324,122 @@ def processes():
             "swap_accounted_mb": swap_total_mb,
         },
     })
+
+
+# ── Readable names ──────────────────────────────────────────────
+# Words that should not be title-cased but written the way people write them
+_ACRONYMS = {
+    "ha": "HA", "ssh": "SSH", "ftp": "FTP", "mqtt": "MQTT", "dns": "DNS",
+    "nas": "NAS", "tv": "TV", "sql": "SQL", "sqlite": "SQLite", "db": "DB",
+    "npm": "NPM", "pdf": "PDF", "ocr": "OCR", "api": "API", "id": "ID",
+    "vpn": "VPN", "usb": "USB", "cpu": "CPU", "os": "OS", "ui": "UI",
+    "2fa": "2FA", "totp": "TOTP", "ip": "IP", "url": "URL", "av": "AV",
+}
+# Names that are technically correct but say nothing on their own
+_NAME_MAP = {
+    "homeassistant": "Home Assistant",
+    "supervisor": "Supervisor",
+    "hassio": "Supervisor",
+}
+# A process called like this tells us nothing – look at the command line instead
+_GENERIC_NAMES = {
+    "python", "python2", "python3", "node", "nodejs", "java", "sh", "bash",
+    "dash", "ash", "perl", "ruby", "php", "php-fpm", "exe", "start.sh",
+    "run.sh", "entrypoint.sh", "docker-init", "tini",
+}
+_THREADISH = re.compile(r"^(?:mainthread|thread-\d+|worker(?:-\d+)?|tokio-runtime.*)$", re.I)
+_ADDON_PREFIX = re.compile(r"^(?:[0-9a-f]{8}[-_]|core[-_]|local[-_]|addon[-_])")
+_HASSIO_PREFIX = re.compile(r"^hassio[-_]")
+_PY_MODULE = re.compile(r"\bpython[\d.]*\s+(?:-[A-Za-z]+\s+)*-m\s+([A-Za-z0-9_.]+)")
+_NODE_PKG = re.compile(r"/node_modules/((?:@[\w.-]+/)?[\w.-]+)/")
+_SCRIPT = re.compile(r"([\w.-]+\.(?:py|js|mjs|sh|pl|rb))(?:\s|$)")
+
+
+def _prettify(raw: str) -> str:
+    """'google-drive-backup' -> 'Google Drive Backup', 'sqlite-web' -> 'SQLite Web'."""
+    words = [w for w in re.split(r"[-_\s]+", (raw or "").strip()) if w]
+    out = []
+    for w in words:
+        lw = w.lower()
+        if lw in _ACRONYMS:
+            out.append(_ACRONYMS[lw])
+        elif w.islower():
+            out.append(w[:1].upper() + w[1:])
+        else:
+            out.append(w)
+    return " ".join(out)
+
+
+def _addon_display(raw: str) -> str:
+    """Container hostname -> addon name: '49e24ccc-firefox' -> 'Firefox'.
+
+    The eight hex characters are the add-on repository, not part of the name.
+    """
+    if not raw:
+        return ""
+    n = _HASSIO_PREFIX.sub("", _ADDON_PREFIX.sub("", raw))
+    if n.lower() in _NAME_MAP:
+        return _NAME_MAP[n.lower()]
+    return _prettify(n) or _prettify(raw)
+
+
+def _display_name(name: str, cmdline: str, addon: str) -> str:
+    """A name that says what the process actually is.
+
+    'python3' with '-m homeassistant' becomes 'Home Assistant', a Firefox
+    child process becomes 'Firefox Tab'. Names that are already meaningful
+    (mariadb, dockerd, crowdsec) are kept unchanged.
+    """
+    n = (name or "?").strip()
+    low = n.lower()
+    cl = cmdline or ""
+
+    if "-contentproc" in cl:
+        if "webextensions" in low:
+            return "Firefox Extensions"
+        if "-isForBrowser" in cl:
+            return "Firefox Tab"
+        return "Firefox Helper"
+
+    if low in _GENERIC_NAMES or _THREADISH.match(n):
+        m = _PY_MODULE.search(cl)
+        if m:
+            mod = m.group(1).split(".")[-1]
+            return _NAME_MAP.get(mod.lower(), _prettify(mod))
+        m = _NODE_PKG.search(cl)
+        if m:
+            return _prettify(m.group(1).lstrip("@").split("/")[-1])
+        m = _SCRIPT.search(cl)
+        if m:
+            return m.group(1)
+        if addon:
+            return addon
+    return n
+
+
+_user_cache: dict = {}
+
+
+def _username(pid, raw_user: str, container_id: str) -> str:
+    """Resolve a bare UID via the passwd file of the process' own container."""
+    raw_user = (raw_user or "").strip()
+    if not raw_user.isdigit():
+        return raw_user
+    key = (container_id, raw_user)
+    if key in _user_cache:
+        return _user_cache[key]
+    resolved = raw_user
+    try:
+        with open(f"/proc/{pid}/root/etc/passwd") as f:
+            for line in f:
+                parts = line.split(":")
+                if len(parts) > 2 and parts[2] == raw_user:
+                    resolved = parts[0]
+                    break
+    except OSError:
+        pass
+    _user_cache[key] = resolved
+    return resolved
 
 
 def _swap_mb(pid: int) -> int:

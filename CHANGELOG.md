@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.6.0
+
+- Klarnamen statt Prozessnamen. "python3" heisst jetzt "Home Assistant",
+  "MainThread" heisst "Matter Server", ein Firefox-Kindprozess heisst
+  "Firefox Tab". Aussagekraeftige Namen wie mariadb oder dockerd bleiben
+  unveraendert. Der urspruengliche Name steht klein daneben und im Tooltip.
+- Addon-Badges ohne Repository-Kuerzel: aus "49e24ccc-firefox" wird
+  "Firefox", aus "cebe7a76-hassio-google-drive-backup" wird
+  "Google Drive Backup".
+- Neue Ansicht "Grouped": eine Zeile je Addon mit Summe aus CPU, RAM und
+  Swap sowie der Anzahl der Prozesse. Aufklappbar zu den groessten
+  Einzelprozessen. Die Summen gelten fuer alle Prozesse der Gruppe, nicht
+  nur fuer die angezeigten.
+- Benutzerspalte zeigt den Namen statt der nackten UID, ausgelesen aus dem
+  Container des jeweiligen Prozesses.
+- Legende erklaert die Badges.
+- Die Suche findet jetzt auch Klarnamen und Addon-Namen.
+
 ## 2.5.0
 
 - Neu: Spalte "Swap" in der Prozessliste. Sie zeigt, wie viel Swap jeder

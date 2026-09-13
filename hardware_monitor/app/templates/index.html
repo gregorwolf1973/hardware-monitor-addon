@@ -254,6 +254,15 @@
     user-select: none;
   }
   thead th.no-sort { cursor: default; }
+  .proc-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0 0 10px; font-size: 0.74rem; color: var(--text-dim); align-items: center; }
+  .proc-legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .pname .raw-name { color: var(--text-dim); font-weight: 400; font-size: 0.78rem; }
+  tr.group-row { cursor: pointer; }
+  tr.group-row > td { background: var(--surface2); }
+  tr.group-row:hover > td { filter: brightness(1.15); }
+  .group-caret { display: inline-block; width: 12px; color: var(--text-dim); }
+  .group-count { color: var(--text-dim); font-weight: 400; font-size: 0.78rem; }
+  tr.sub-row > td:first-child { padding-left: 26px; }
   .swap-val { color: var(--text-dim); }
   .swap-val.has-swap { color: var(--warn, #e0a030); font-weight: 600; }
   thead th .arrow { opacity: .35; margin-left: 4px; font-size: .8em; }
@@ -446,6 +455,9 @@
         <button class="sort-btn" data-filter="host">Host</button>
         <button class="sort-btn" data-filter="docker">Docker</button>
       </div>
+      <div class="sort-btns" title="Group processes by add-on / container">
+        <button class="sort-btn" id="group-btn">Grouped</button>
+      </div>
       <label class="ctrl-label" title="Auto-refresh interval">
         ⟳
         <select id="refresh-sel" class="ctrl-select">
@@ -468,6 +480,12 @@
         </select>
       </label>
     </div>
+  </div>
+  <div class="proc-legend">
+    <span><span class="badge badge-addon">Add-on</span> runs inside a Home Assistant add-on or HA itself</span>
+    <span><span class="badge badge-docker">docker</span> a container outside the add-on system</span>
+    <span><span class="badge badge-user">user</span> account the process runs as</span>
+    <span>no badge: runs directly on the host</span>
   </div>
   <div id="proc-diag" style="display:none; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; margin-bottom:10px; font-size:0.78rem; color:var(--text-dim); font-family:monospace;"></div>
   <div class="table-wrap">
@@ -581,6 +599,8 @@ function pushHist(key, val) {
 }
 
 /* ── State ── */
+let grouped = localStorage.getItem('hm-grouped') === '1';
+const expandedGroups = new Set();
 let currentSort = localStorage.getItem('hm-sort') || 'cpu';
 let currentSortDir = localStorage.getItem('hm-sort-dir') || 'desc';
 let currentFilter = localStorage.getItem('hm-filter') || 'all';
@@ -597,6 +617,17 @@ function activateBtn(group, key, attr) {
 }
 activateBtn('filter', currentFilter, 'filter');
 
+(() => {
+  const gb = document.getElementById('group-btn');
+  if (!gb) return;
+  gb.classList.toggle('active', grouped);
+  gb.addEventListener('click', () => {
+    grouped = !grouped;
+    localStorage.setItem('hm-grouped', grouped ? '1' : '0');
+    gb.classList.toggle('active', grouped);
+    renderProcesses();
+  });
+})();
 document.querySelectorAll('[data-group="filter"] .sort-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     currentFilter = btn.dataset.filter;
@@ -823,6 +854,59 @@ async function loadProcesses() {
   } catch(e) { /* ignore */ }
 }
 
+/* One row per add-on / container, expandable to its biggest processes. */
+function renderGroups(groups) {
+  const tbody = document.getElementById('proc-body');
+  const esc = s => (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const gs = groups.filter(g => {
+    if (currentFilter === 'host') return g.source === 'host';
+    if (currentFilter === 'docker') return g.source === 'docker';
+    if (currentFilter === 'ha') return g.source && g.source.startsWith('ha_');
+    return true;
+  });
+  const infoEl = document.getElementById('proc-info');
+  if (infoEl) {
+    const total = gs.reduce((n, g) => n + g.count, 0);
+    infoEl.textContent = `${gs.length} groups · ${total} processes`;
+  }
+  if (!gs.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-dim)">No processes</td></tr>';
+    return;
+  }
+  tbody.innerHTML = gs.map(g => {
+    const open = expandedGroups.has(g.key);
+    const subs = open ? (g.top || []).map(p => `<tr class="sub-row">
+      <td class="pid num">${p.pid}</td>
+      <td class="name"><div class="pname"><span title="${esc(p.name)}">${esc(p.display || p.name)}</span></div></td>
+      <td class="num">${p.cpu.toFixed(1)} %</td>
+      <td class="num">${p.ram_mb} MB</td>
+      <td class="num">${p.ram_percent.toFixed(1)} %</td>
+      <td class="num swap-val ${(p.swap_mb||0) > 0 ? 'has-swap' : ''}">${(p.swap_mb||0) > 0 ? p.swap_mb + ' MB' : '–'}</td>
+      <td><span class="status-pill">${esc(p.status)}</span></td>
+    </tr>`).join('') : '';
+    const more = open && g.count > (g.top || []).length
+      ? `<tr class="sub-row"><td colspan="7" style="color:var(--text-dim);font-size:0.76rem">… and ${g.count - g.top.length} more processes in this group</td></tr>`
+      : '';
+    return `<tr class="group-row" data-group="${esc(g.key)}">
+      <td class="num"><span class="group-caret">${open ? '▾' : '▸'}</span></td>
+      <td class="name"><div class="pname"><span>${esc(g.label)}</span>
+        <span class="group-count">${g.count} ${g.count === 1 ? 'process' : 'processes'}</span></div></td>
+      <td class="num">${g.cpu.toFixed(1)} %</td>
+      <td class="num">${g.ram_mb} MB</td>
+      <td class="num">${g.ram_percent.toFixed(1)} %</td>
+      <td class="num swap-val ${g.swap_mb > 0 ? 'has-swap' : ''}">${g.swap_mb > 0 ? g.swap_mb + ' MB' : '–'}</td>
+      <td></td>
+    </tr>${subs}${more}`;
+  }).join('');
+  tbody.querySelectorAll('tr.group-row').forEach(tr => {
+    tr.addEventListener('click', () => {
+      const k = tr.dataset.group;
+      if (expandedGroups.has(k)) expandedGroups.delete(k); else expandedGroups.add(k);
+      renderGroups(groups);
+    });
+  });
+}
+
 function renderProcesses() {
   if (!lastProcData) return;
   let procs = lastProcData.processes || [];
@@ -840,6 +924,8 @@ function renderProcesses() {
   if (searchTerm) {
     procs = procs.filter(p =>
       (p.name || '').toLowerCase().includes(searchTerm) ||
+      (p.display || '').toLowerCase().includes(searchTerm) ||
+      (p.addon || '').toLowerCase().includes(searchTerm) ||
       (p.cmdline || '').toLowerCase().includes(searchTerm) ||
       (p.label || '').toLowerCase().includes(searchTerm) ||
       String(p.pid).includes(searchTerm)
@@ -881,6 +967,12 @@ function renderProcesses() {
   }
 
   const tbody = document.getElementById('proc-body');
+
+  if (grouped && !searchTerm) {
+    renderGroups(lastProcData.groups || []);
+    return;
+  }
+
   if (!visible.length) {
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-dim)">No processes</td></tr>';
     return;
@@ -893,7 +985,7 @@ function renderProcesses() {
 
     let badge = '';
     const src = p.source || 'host';
-    const lbl = p.label || p.container_name || p.container || '';
+    const lbl = p.addon || p.label || p.container_name || p.container || '';
     const tt = `Container: ${esc(p.container_name || '–')} · id: ${esc(p.container || '–')}`;
     if (src === 'ha_core') {
       badge = `<span class="badge badge-addon" title="${tt}">HA Core</span>`;
@@ -906,12 +998,15 @@ function renderProcesses() {
     }
 
     const userBadge = p.user ? `<span class="badge badge-user" title="User">${esc(p.user)}</span>` : '';
+    // Show the raw process name only when we replaced it with something clearer
+    const rawName = (p.display && p.display !== p.name)
+      ? `<span class="raw-name" title="Process name reported by the kernel">${esc(p.name)}</span>` : '';
     const cmd = p.cmdline && p.cmdline !== p.name
       ? `<div class="cmdline" title="click to expand · ${esc(p.cmdline)}" onclick="this.classList.toggle('expanded')">${esc(p.cmdline)}</div>` : '';
     return `<tr>
       <td class="pid num">${p.pid}</td>
       <td class="name">
-        <div class="pname"><span>${esc(p.name)}</span>${badge}${userBadge}</div>
+        <div class="pname"><span title="${esc(p.name)}">${esc(p.display || p.name)}</span>${rawName}${badge}${userBadge}</div>
         ${cmd}
       </td>
       <td class="cpu-val num ${cpuCls}">${p.cpu.toFixed(1)} %</td>
