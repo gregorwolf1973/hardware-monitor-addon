@@ -218,6 +218,7 @@ def processes():
 
     procs = []
     access_denied = 0
+    swap_total_mb = 0
     for proc in psutil.process_iter(["pid", "name", "username", "cpu_percent",
                                      "memory_info", "memory_percent", "status", "cmdline"]):
         try:
@@ -238,6 +239,9 @@ def processes():
             except Exception:
                 pass
 
+            swap_mb = _swap_mb(info["pid"])
+            swap_total_mb += swap_mb
+
             source, label = _classify(container_id, container_name, cmdline)
             procs.append({
                 "pid": info["pid"],
@@ -251,6 +255,7 @@ def processes():
                 "cpu": round(info["cpu_percent"] or 0, 1),
                 "ram_mb": ram_mb,
                 "ram_percent": round(info["memory_percent"] or 0, 1),
+                "swap_mb": swap_mb,
                 "status": info["status"],
             })
         except psutil.AccessDenied:
@@ -271,6 +276,8 @@ def processes():
         procs.sort(key=lambda x: x["name"].lower())
     elif sort_by == "ram":
         procs.sort(key=lambda x: x["ram_mb"], reverse=True)
+    elif sort_by == "swap":
+        procs.sort(key=lambda x: x["swap_mb"], reverse=True)
     else:
         procs.sort(key=lambda x: x["cpu"], reverse=True)
 
@@ -282,8 +289,26 @@ def processes():
             "psutil_visible": len(procs),
             "access_denied": access_denied,
             "host_pid_active": pid1_name not in ("s6-svscan", "?") and proc_pid_count > 30,
+            "swap_accounted_mb": swap_total_mb,
         },
     })
+
+
+def _swap_mb(pid: int) -> int:
+    """Swap used by one process, in MB, from /proc/<pid>/status.
+
+    VmSwap is the cheap way to get this – unlike smaps it is a single small
+    read per process. Kernel threads and processes without swapped pages have
+    no VmSwap line and count as 0.
+    """
+    try:
+        with open(f"/proc/{pid}/status") as f:
+            for line in f:
+                if line.startswith("VmSwap:"):
+                    return int(line.split()[1]) // 1024
+    except (OSError, ValueError, IndexError):
+        pass
+    return 0
 
 
 def _install_safe_getfqdn():

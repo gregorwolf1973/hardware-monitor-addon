@@ -254,6 +254,8 @@
     user-select: none;
   }
   thead th.no-sort { cursor: default; }
+  .swap-val { color: var(--text-dim); }
+  .swap-val.has-swap { color: var(--warn, #e0a030); font-weight: 600; }
   thead th .arrow { opacity: .35; margin-left: 4px; font-size: .8em; }
   thead th.sorted { color: var(--primary); }
   thead th.sorted .arrow { opacity: 1; }
@@ -477,11 +479,12 @@
         <th data-col="cpu" class="sorted">CPU %<span class="arrow">↓</span></th>
         <th data-col="ram_mb">RAM<span class="arrow">↕</span></th>
         <th data-col="ram_percent">RAM %<span class="arrow">↕</span></th>
+        <th data-col="swap_mb" title="Swap used by this process (VmSwap)">Swap<span class="arrow">↕</span></th>
         <th data-col="status" class="no-sort">Status</th>
       </tr>
     </thead>
     <tbody id="proc-body">
-      <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-dim)">Loading processes…</td></tr>
+      <tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-dim)">Loading processes…</td></tr>
     </tbody>
   </table>
   </div>
@@ -879,7 +882,7 @@ function renderProcesses() {
 
   const tbody = document.getElementById('proc-body');
   if (!visible.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-dim)">No processes</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-dim)">No processes</td></tr>';
     return;
   }
   const esc = s => (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -917,6 +920,7 @@ function renderProcesses() {
         ${p.ram_mb} MB
       </td>
       <td class="num">${p.ram_percent.toFixed(1)} %</td>
+      <td class="num swap-val ${(p.swap_mb || 0) > 0 ? 'has-swap' : ''}">${(p.swap_mb || 0) > 0 ? p.swap_mb + ' MB' : '–'}</td>
       <td><span class="status-pill ${statusCls}">${p.status}</span></td>
     </tr>`;
   }).join('');
