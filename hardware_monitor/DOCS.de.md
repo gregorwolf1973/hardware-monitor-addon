@@ -16,15 +16,32 @@ Live-Übersicht über CPU, RAM, Datenträger, Netzwerk, Temperaturen und Prozess
 
 ## Bedienung
 
-- **Header-Kacheln**: CPU, RAM, Netzwerk, Temperaturen auf einen Blick.
+- **Header-Kacheln**: CPU, RAM, Swap, Netzwerk, Load-Average und Temperaturen
+  auf einen Blick. CPU, RAM und Netzwerk zeichnen zusätzlich eine
+  **Sparkline** der letzten Messwerte.
 - **Datenträger**: Ein Eintrag pro physischem Device. Docker-Bind-Mounts auf
   einzelne Dateien (`/etc/resolv.conf`, `/etc/hostname`, …) werden gefiltert.
-- **Prozesse**: Top 60, sortierbar nach CPU, RAM oder Name.
+- **Prozesse**: Top 60 (nach CPU) vom Host.
+  - **Sortierbare Spalten** — ein Klick auf die Überschrift sortiert nach PID,
+    Name, CPU %, RAM, RAM % oder Swap; ein weiterer Klick auf dieselbe Spalte
+    dreht die Richtung um. Der Pfeil zeigt Spalte und Richtung an, die Wahl
+    merkt sich der Browser. Nur *Status* ist nicht sortierbar.
+  - **Suchfeld** — filtert beim Tippen nach Prozessname und Kommandozeile,
+    `/` springt hinein.
   - **Filter-Chips** — Alle / HA / Host / Docker
+  - **Grouped** — fasst die Prozesse nach Addon / Container zusammen statt sie
+    einzeln zu listen (eine Suche hebt die Gruppierung auf).
   - **Refresh-Intervall** — 2 s / 5 s / 10 s / 30 s / aus (im Browser gespeichert)
+  - **CPU sample** — siehe nächster Abschnitt.
   - **Badges** zeigen die Quelle an: `HA Core`, `hassio_dns`, Addon-Slug,
-    Docker-Containername oder Host.
+    Docker-Containername oder Host; ein zweites Badge nennt den Benutzer, unter
+    dem der Prozess läuft. Ein Klick auf die Kommandozeile klappt sie auf.
+- **Pause** (der ⏸-Knopf neben der Refresh-Anzeige) hält die automatische
+  Aktualisierung an; im Hintergrund-Tab passiert das automatisch.
 - **Theme-Umschalter** oben rechts wechselt zwischen Dark und Light.
+- **Tastenkürzel** (außerhalb von Eingabefeldern und des Swap-Dialogs):
+  `/` Suchfeld fokussieren · `Leertaste` Pause / weiter · `R` sofort
+  aktualisieren · `T` Theme wechseln.
 
 ## CPU-Messfenster
 

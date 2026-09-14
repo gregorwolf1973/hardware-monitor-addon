@@ -11,7 +11,7 @@ Temperaturen und die Top-Prozesse aller Addons und des Host-Systems.
 
 ## Repository hinzufügen
 
-In Home Assistant: **Einstellungen → Add-ons → Add-on Store → ⋮ → Repositories**
+In Home Assistant: **Einstellungen → Apps → App installieren → ⋮ → Repositories**
 und folgende URL eintragen:
 
 ```
@@ -29,7 +29,7 @@ Danach **Hardware Monitor** installieren und über die Seitenleiste (Ingress)
 - Datenträger pro Device (Docker-Bind-Mount-Dubletten werden gefiltert)
 - Live-Netzwerkdurchsatz (TX/RX) + Summen
 - Temperatursensoren (sofern vorhanden)
-- Top-Prozesse (sortierbar nach CPU / RAM / Name), mit Swap-Nutzung pro
+- Top-Prozesse (jede Spalte sortierbar: PID, Name, CPU, RAM, RAM %, Swap), mit Swap-Nutzung pro
   Prozess, Suchfeld und Ansicht **Grouped** nach Addon
 - Filter: **Alle / HA / Host / Docker**
 - Einstellbares Refresh-Intervall (2s / 5s / 10s / 30s / aus), wird im Browser

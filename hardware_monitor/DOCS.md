@@ -16,15 +16,32 @@ Live overview of CPU, RAM, disks, network, temperatures and processes — across
 
 ## How to use
 
-- **Header cards**: CPU, RAM, network, temperatures at a glance.
+- **Header cards**: CPU, RAM, swap, network, load average and temperatures at a
+  glance. CPU, RAM and network also draw a **sparkline** of the last
+  measurements.
 - **Disks**: One entry per physical device. Docker bind-mounts that point to
   single files (`/etc/resolv.conf`, `/etc/hostname`, …) are filtered out.
-- **Processes**: Top 60 sorted by CPU, RAM or name.
+- **Processes**: Top 60 (by CPU) fetched from the host.
+  - **Sortable columns** — click a header to sort by PID, name, CPU %, RAM,
+    RAM % or swap; clicking the same header again reverses the direction. The
+    arrow in the header shows the current column and direction, and the choice
+    is remembered in the browser. Only *Status* is not sortable.
+  - **Search box** — filters by process name and command line as you type;
+    press `/` to jump into it.
   - **Filter chips** — All / HA / Host / Docker
+  - **Grouped** — groups the processes by add-on / container instead of
+    listing them individually (a search overrides the grouping).
   - **Refresh interval** — 2 s / 5 s / 10 s / 30 s / off (stored in browser)
+  - **CPU sample** — see the next section.
   - **Badges** identify the source: `HA Core`, `hassio_dns`, addon slug,
-    docker container name, or host.
+    docker container name, or host; a second badge shows the user the process
+    runs as. Click a command line to expand it.
+- **Pause** (the ⏸ button next to the refresh status) stops the auto-refresh;
+  the same happens automatically while the browser tab is in the background.
 - **Theme toggle** in the top-right switches between dark and light.
+- **Keyboard shortcuts** (outside of input fields and the swap dialog):
+  `/` focus the search box · `Space` pause / resume · `R` refresh now ·
+  `T` switch the theme.
 
 ## CPU sample window
 

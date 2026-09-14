@@ -11,7 +11,7 @@ and the top processes across **all** addons and the host system.
 
 ## Add this repository
 
-In Home Assistant: **Settings → Add-ons → Add-on Store → ⋮ → Repositories** and add
+In Home Assistant: **Settings → Apps → Install app → ⋮ → Repositories** and add
 
 ```
 https://github.com/gregorwolf1973/hardware-monitor-addon
@@ -27,7 +27,7 @@ Then install **Hardware Monitor** and open it through the side panel (Ingress).
 - Disk usage per device (Docker bind-mount duplicates filtered out)
 - Live network throughput (TX/RX) + totals
 - Temperature sensors (where available)
-- Top processes (sortable by CPU / RAM / name), with per-process swap usage,
+- Top processes (every column sortable: PID, name, CPU, RAM, RAM %, swap), with per-process swap usage,
   search box and a **Grouped** view per add-on
 - Filter chips: **All / HA / Host / Docker**
 - Configurable refresh interval (2s / 5s / 10s / 30s / off), stored in your browser
