@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.7.0
+
+- Swap einstellen. Die Swap-Kachel zeigt die in Home Assistant OS
+  eingestellte Groesse und Swappiness, der Knopf "Configure" oeffnet einen
+  Dialog mit einer Empfehlung: etwa so gross wie der RAM bis 4 GB, darueber
+  die Haelfte, hoechstens 8 GB, mehr Luft bei stark genutztem Swap, kleiner
+  auf SD-Karten, und nie mehr als auf die Datenpartition passt (2 GB bleiben
+  frei). Die neue Groesse gilt nach einem Neustart des Hosts; ein Hinweis mit
+  Knopf "Restart host" (mit Rueckfrage) bleibt stehen, bis er erfolgt ist.
+- Nutzt die Supervisor-API `/os/config/swap` und braucht Home Assistant OS
+  15 oder neuer; sonst nennt die Kachel den Grund. Dafuer ist jetzt
+  `hassio_api: true` gesetzt.
+- Aendern und Neustarten geht nur ueber die Seitenleiste (Ingress). Der
+  direkte Port 8200 im LAN hat keine Anmeldung und bleibt deshalb lesend.
+
 ## 2.6.0
 
 - Klarnamen statt Prozessnamen. "python3" heisst jetzt "Home Assistant",

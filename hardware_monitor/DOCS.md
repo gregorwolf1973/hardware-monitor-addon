@@ -42,6 +42,25 @@ difference is mostly the observer effect (polling cost) plus shorter sample
 window. Switch to **3 s** to get a calmer reading; increase the **Refresh**
 interval to reduce the polling cost.
 
+## Swap settings
+
+On **Home Assistant OS 15+** the Swap card shows the configured size and
+swappiness. **Configure** opens a dialog (from the sidebar only, not via the
+direct port 8200):
+
+- **Recommendation** (marked green): about the size of RAM up to 4 GB, half of
+  RAM above that, at most 8 GB. With a lot of swap already in use it leaves
+  room for twice that; on SD cards / eMMC it stays at 2 GB. It never suggests
+  more than fits on the data partition, keeping 2 GB free.
+- **Swappiness**: Home Assistant OS uses 1 – swap only under real memory
+  pressure, the right setting for SSDs and flash.
+- A **new size only takes effect after a host restart**. The notice with
+  **Restart host…** stays until that happens. Swappiness applies at once.
+
+Swap bridges memory peaks but does not replace RAM: if it stays heavily used,
+the process list (*Swap* column, *Grouped* view) shows which add-on needs the
+memory.
+
 ## Why are some processes missing?
 
 If you see a yellow diagnostic banner ("host_pid INACTIVE — container only sees
@@ -58,6 +77,7 @@ process count should be in the hundreds, not single digits.
 | -------------- | ------------- | ----------------------------------------------------- |
 | `host_pid`     | `true`        | See processes outside the container                   |
 | `host_network` | `true`        | Read real host network counters                       |
+| `hassio_api`   | `true`        | Swap settings through the Supervisor API              |
 | `hassio_role`  | `manager`     | Required for the panel + extended Supervisor APIs     |
 | `privileged`   | `SYS_PTRACE`  | Read `/proc/<pid>/cgroup` and command lines           |
 | `apparmor`     | `false`       | Allow access to `/proc/<pid>/root/etc/hostname`       |

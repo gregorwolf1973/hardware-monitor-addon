@@ -322,6 +322,35 @@
   @keyframes pulse { 0%,100%{opacity:.4}50%{opacity:.7} }
   .skeleton { animation: pulse 1.4s ease infinite; background: var(--border); border-radius: 6px; height: 1em; width: 60px; display: inline-block; }
 
+  /* ── Swap dialog ── */
+  .btn-mini { padding: 2px 8px; font-size: 0.7rem; text-transform: none; letter-spacing: 0; }
+  .btn-primary { background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 8px 14px; font: inherit; font-weight: 600; cursor: pointer; }
+  .btn-primary:disabled { opacity: .5; cursor: default; }
+  .btn-plain { background: var(--surface2); color: var(--text-bright); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font: inherit; cursor: pointer; }
+  .notice { margin-top: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+            background: rgba(244,180,0,.1); border: 1px solid var(--warn); border-radius: 10px; padding: 10px 14px; font-size: 0.85rem; }
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 10px 40px rgba(0,0,0,.35);
+           width: 100%; max-width: 480px; max-height: 90vh; overflow: auto; padding: 20px; }
+  .modal h2 { font-size: 1.05rem; color: var(--text-bright); margin-bottom: 4px; }
+  .modal .sub { color: var(--text-dim); font-size: 0.8rem; margin-bottom: 14px; }
+  .modal label.fl { display: block; font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: .06em; margin: 14px 0 6px; }
+  .size-opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; }
+  .size-opt { border: 1px solid var(--border); background: var(--surface2); color: var(--text-bright); border-radius: 8px; padding: 8px 6px;
+              cursor: pointer; text-align: center; font: inherit; font-size: 0.85rem; }
+  .size-opt small { display: block; font-size: 0.66rem; color: var(--text-dim); margin-top: 2px; }
+  .size-opt.rec small { color: var(--success); font-weight: 600; }
+  .size-opt.active { border-color: var(--primary); outline: 2px solid var(--primary); outline-offset: -2px; }
+  .size-opt:disabled { opacity: .4; cursor: not-allowed; }
+  .rec-box { background: rgba(15,157,88,.08); border: 1px solid rgba(15,157,88,.35); border-radius: 10px; padding: 10px 12px; font-size: 0.8rem; margin-top: 4px; }
+  .rec-box ul { margin: 4px 0 0 18px; color: var(--text-dim); }
+  .modal .row { display: flex; gap: 8px; align-items: center; }
+  .modal input[type=text], .modal input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; color: var(--text-bright); font: inherit; width: 110px; }
+  .modal .hint { font-size: 0.75rem; color: var(--text-dim); margin-top: 6px; }
+  .modal .err { color: var(--danger); font-size: 0.8rem; margin-top: 10px; }
+  .modal .warnline { color: var(--warn); font-size: 0.8rem; margin-top: 10px; }
+  .modal .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+
   /* ── Responsive ── */
   @media (max-width: 640px) {
     main { padding: 14px 10px 30px; }
@@ -408,11 +437,19 @@
       <canvas class="spark" id="mem-spark"></canvas>
     </div>
     <div class="card">
-      <div class="card-label">Swap</div>
+      <div class="card-label" style="justify-content:space-between">
+        <span>Swap</span>
+        <button class="btn-icon btn-mini" id="swap-cfg-btn" title="Change swap size and swappiness" style="display:none">Configure</button>
+      </div>
       <div class="card-value" id="swap-pct"><span class="skeleton"></span></div>
       <div class="card-sub" id="swap-detail"></div>
+      <div class="card-sub" id="swap-cfg-line"></div>
       <div class="bar-wrap"><div class="bar-fill bar-ok" id="swap-bar" style="width:0%"></div></div>
     </div>
+  </div>
+  <div class="notice" id="reboot-notice" style="display:none">
+    <span>The new swap size takes effect after the host has been restarted.</span>
+    <button class="btn-primary" id="reboot-btn">Restart host…</button>
   </div>
 
   <!-- ── Network ── -->
@@ -508,6 +545,30 @@
   </div>
 
 </main>
+
+<div class="modal-bg" id="swap-modal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="swap-modal-title">
+  <div class="modal">
+    <h2 id="swap-modal-title">Swap settings</h2>
+    <div class="sub" id="swap-modal-sub"></div>
+    <div class="rec-box" id="swap-rec"></div>
+    <label class="fl">Swap size</label>
+    <div class="size-opts" id="swap-sizes"></div>
+    <div class="row" style="margin-top:8px">
+      <span class="hint" style="margin:0">Custom:</span>
+      <input type="text" id="swap-custom" placeholder="e.g. 3G" autocomplete="off">
+    </div>
+    <div class="hint" id="swap-size-hint"></div>
+    <label class="fl" for="swap-swappiness">Swappiness</label>
+    <div class="row"><input type="number" id="swap-swappiness" min="0" max="100" step="1"></div>
+    <div class="hint">How eagerly the kernel moves memory to swap (0–100). Home Assistant OS uses 1: swap only under real memory pressure – recommended on SSDs and flash.</div>
+    <div class="warnline" id="swap-warn" style="display:none"></div>
+    <div class="err" id="swap-err" style="display:none"></div>
+    <div class="actions">
+      <button class="btn-plain" type="button" id="swap-cancel">Cancel</button>
+      <button class="btn-primary" type="button" id="swap-save">Save</button>
+    </div>
+  </div>
+</div>
 
 <script>
 /* ── Helpers ── */
@@ -712,6 +773,7 @@ searchInput.addEventListener('input', () => {
 /* Keyboard shortcuts */
 document.addEventListener('keydown', e => {
   if (e.target.matches('input, select, textarea')) return;
+  if (document.getElementById('swap-modal').style.display !== 'none') return;   // shortcuts stay out of the dialog
   if (e.key === '/') { e.preventDefault(); searchInput.focus(); }
   else if (e.key === ' ') { e.preventDefault(); setPaused(!paused); }
   else if (e.key === 't' || e.key === 'T') toggleTheme();
@@ -1034,6 +1096,137 @@ window.addEventListener('resize', () => {
   }, 100);
 });
 
+/* ── Swap configuration ── */
+const GIB = 1024 ** 3;
+let swapCfg = null;
+let swapChoice = null;
+
+function sizeToBytes(t) {
+  const m = /^(\d+)([KMG])?$/i.exec(String(t || '').trim());
+  if (!m) return null;
+  return parseInt(m[1], 10) * ({'': 1, K: 1024, M: 1024 ** 2, G: GIB})[(m[2] || '').toUpperCase()];
+}
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
+const STORAGE_NAME = {ssd: 'SSD', hdd: 'hard disk', sd: 'SD card / eMMC', unknown: 'unknown storage'};
+
+async function postJSON(url, body) {
+  const res = await fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json', 'X-HM-Action': '1'},
+                                body: JSON.stringify(body)});
+  let d = {};
+  try { d = await res.json(); } catch (e) {}
+  if (!res.ok) throw new Error(d.error || ('HTTP ' + res.status));
+  return d;
+}
+
+async function loadSwapConfig() {
+  try {
+    const res = await fetch('api/swap/config');
+    swapCfg = await res.json();
+  } catch (e) { return; }
+  const line = document.getElementById('swap-cfg-line');
+  const btn = document.getElementById('swap-cfg-btn');
+  if (!swapCfg.available) {
+    line.textContent = 'Swap settings: ' + (swapCfg.reason || 'not available');
+    line.title = 'Requires Home Assistant OS 15 or newer';
+    btn.style.display = 'none';
+  } else {
+    line.textContent = 'Configured: ' + (swapCfg.swap_size || 'HAOS default') + ' · swappiness ' + swapCfg.swappiness;
+    btn.style.display = swapCfg.can_change ? '' : 'none';
+    if (!swapCfg.can_change) line.title = 'Open the monitor from the Home Assistant sidebar to change swap';
+  }
+  document.getElementById('reboot-notice').style.display = swapCfg.reboot_required ? '' : 'none';
+}
+
+function openSwapModal() {
+  const c = swapCfg;
+  if (!c || !c.available) return;
+  const rec = c.recommended;
+  document.getElementById('swap-modal-sub').textContent =
+    `RAM ${fmt.bytes(c.ram_total)} · swap in use ${fmt.bytes(c.swap_used)} · data disk (${STORAGE_NAME[c.storage] || c.storage}) free ${fmt.bytes(c.data_free)}`;
+  document.getElementById('swap-rec').innerHTML =
+    `<strong>Recommended: ${esc(rec.swap_size === '0' ? 'no swap' : rec.swap_size.replace('G', ' GB'))}, swappiness ${rec.swappiness}</strong>` +
+    `<ul>${rec.reasons.map(r => '<li>' + esc(r) + '</li>').join('')}</ul>`;
+  const current = String(c.swap_size || '').toUpperCase();
+  const opts = ['1G', '2G', '4G', '6G', '8G', '12G', '16G'];
+  if (rec.swap_size !== '0' && !opts.includes(rec.swap_size)) opts.push(rec.swap_size);
+  opts.sort((a, b) => sizeToBytes(a) - sizeToBytes(b));
+  const box = document.getElementById('swap-sizes');
+  box.innerHTML = '';
+  [...opts, '0'].forEach(o => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'size-opt' + (o === rec.swap_size ? ' rec' : '');
+    b.dataset.size = o;
+    const tooBig = o !== '0' && sizeToBytes(o) > c.max_bytes;
+    b.disabled = tooBig;
+    const tag = o === rec.swap_size ? 'recommended' : (o === current ? 'current' : (tooBig ? 'does not fit' : (o === '0' ? 'disable' : '')));
+    b.innerHTML = (o === '0' ? 'Off' : o.replace('G', ' GB')) + `<small>${tag || '&nbsp;'}</small>`;
+    if (o === rec.swap_size && o === current) b.querySelector('small').textContent = 'current · recommended';
+    b.addEventListener('click', () => pickSwapSize(o));
+    box.appendChild(b);
+  });
+  document.getElementById('swap-custom').value = '';
+  document.getElementById('swap-swappiness').value = c.swappiness ?? rec.swappiness;
+  document.getElementById('swap-size-hint').textContent =
+    `At most ${Math.floor(c.max_bytes / GIB)} GB (16 GB cap; 2 GB stay free on the data disk). Takes effect after a host restart.`;
+  document.getElementById('swap-err').style.display = 'none';
+  pickSwapSize(opts.includes(current) ? current : rec.swap_size);
+  document.getElementById('swap-modal').style.display = '';
+}
+
+function pickSwapSize(size) {
+  swapChoice = size;
+  document.querySelectorAll('#swap-sizes .size-opt').forEach(b => b.classList.toggle('active', b.dataset.size === size));
+  const warn = document.getElementById('swap-warn');
+  const msgs = [];
+  if (size === '0') msgs.push('Without swap the kernel stops processes (add-ons, Home Assistant) as soon as RAM runs out.');
+  if (swapCfg && swapCfg.storage === 'sd' && sizeToBytes(size) > 2 * GIB) msgs.push('Large swap on an SD card wears the card quickly.');
+  if (swapCfg && size !== '0' && sizeToBytes(size) < swapCfg.swap_used) msgs.push('Smaller than the swap in use right now.');
+  warn.textContent = msgs.join(' ');
+  warn.style.display = msgs.length ? '' : 'none';
+}
+
+document.getElementById('swap-custom').addEventListener('input', e => {
+  const v = e.target.value.trim().toUpperCase();
+  if (sizeToBytes(v) !== null) pickSwapSize(v);
+});
+document.getElementById('swap-cfg-btn').addEventListener('click', openSwapModal);
+document.getElementById('swap-cancel').addEventListener('click', () => { document.getElementById('swap-modal').style.display = 'none'; });
+document.getElementById('swap-modal').addEventListener('click', e => { if (e.target.id === 'swap-modal') e.target.style.display = 'none'; });
+document.getElementById('swap-save').addEventListener('click', async () => {
+  const err = document.getElementById('swap-err');
+  err.style.display = 'none';
+  const body = {};
+  const cur = String(swapCfg.swap_size || '').toUpperCase();
+  if (swapChoice && swapChoice !== cur) body.swap_size = swapChoice;
+  const sw = parseInt(document.getElementById('swap-swappiness').value, 10);
+  if (!isNaN(sw) && sw !== swapCfg.swappiness) body.swappiness = sw;
+  if (!Object.keys(body).length) { document.getElementById('swap-modal').style.display = 'none'; return; }
+  if (body.swap_size === '0' && !confirm('Really disable swap?')) return;
+  const saveBtn = document.getElementById('swap-save');
+  saveBtn.disabled = true;
+  try {
+    await postJSON('api/swap/config', body);
+    document.getElementById('swap-modal').style.display = 'none';
+    await loadSwapConfig();
+  } catch (e) {
+    err.textContent = e.message;
+    err.style.display = '';
+  } finally {
+    saveBtn.disabled = false;
+  }
+});
+document.getElementById('reboot-btn').addEventListener('click', async () => {
+  if (!confirm('Restart the Home Assistant host now? All add-ons and Home Assistant will be unavailable for a few minutes.')) return;
+  try {
+    await postJSON('api/host/reboot', {confirm: 'reboot'});
+    document.getElementById('reboot-notice').innerHTML = '<span>Host is restarting – this page will come back when Home Assistant is up again.</span>';
+  } catch (e) { alert(e.message); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.getElementById('swap-modal').style.display = 'none';
+});
+
 /* ── Auto-refresh ── */
 async function refresh() {
   await Promise.all([loadHardware(), loadProcesses()]);
@@ -1041,6 +1234,8 @@ async function refresh() {
 
 refresh();
 setupRefresh();
+loadSwapConfig();
+setInterval(() => { if (!document.hidden) loadSwapConfig(); }, 60000);
 </script>
 </body>
 </html>

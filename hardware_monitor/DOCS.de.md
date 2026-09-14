@@ -42,6 +42,26 @@ meldet, ist die Differenz hauptsächlich Beobachter-Effekt (Polling-Kosten)
 plus kürzeres Messfenster. **3 s** liefert ruhigere Werte; ein längeres
 **Refresh**-Intervall reduziert die Polling-Last zusätzlich.
 
+## Swap einstellen
+
+Ab **Home Assistant OS 15** zeigt die Swap-Kachel die eingestellte Größe und
+Swappiness. **Configure** öffnet den Dialog (nur über die Seitenleiste, nicht
+über den direkten Port 8200):
+
+- **Empfehlung** (grün markiert): ungefähr so groß wie der RAM bis 4 GB,
+  darüber die Hälfte, höchstens 8 GB. Ist schon viel Swap belegt, gibt es
+  Luft für das Doppelte; auf SD-Karten/eMMC bleibt es bei 2 GB. Es wird nie
+  mehr vorgeschlagen, als auf die Datenpartition passt – 2 GB bleiben frei.
+- **Swappiness**: Home Assistant OS nutzt 1, also Swap erst bei echtem
+  Speichermangel. Das ist auf SSD und Flash die richtige Einstellung.
+- Eine **neue Größe gilt erst nach einem Neustart des Hosts**. Der Hinweis
+  mit **Restart host…** bleibt stehen, bis er erfolgt ist. Swappiness wirkt
+  sofort.
+
+Swap überbrückt Speicherspitzen, ersetzt aber keinen RAM: Ist er dauerhaft
+stark belegt, zeigt die Prozessliste (Spalte *Swap*, Ansicht *Grouped*),
+welches Addon den Speicher braucht.
+
 ## Warum fehlen Prozesse?
 
 Wenn das gelbe Diagnose-Banner erscheint ("host_pid INAKTIV — Container sieht
@@ -58,6 +78,7 @@ Gesamtzahl der Prozesse im dreistelligen Bereich.
 | -------------- | ------------- | ------------------------------------------------------ |
 | `host_pid`     | `true`        | Prozesse außerhalb des Containers sehen                |
 | `host_network` | `true`        | Echte Host-Netzwerkzähler lesen                        |
+| `hassio_api`   | `true`        | Swap-Einstellungen über die Supervisor-API             |
 | `hassio_role`  | `manager`     | Notwendig für Panel + erweiterte Supervisor-APIs       |
 | `privileged`   | `SYS_PTRACE`  | `/proc/<pid>/cgroup` und Kommandozeilen lesen          |
 | `apparmor`     | `false`       | Zugriff auf `/proc/<pid>/root/etc/hostname`            |

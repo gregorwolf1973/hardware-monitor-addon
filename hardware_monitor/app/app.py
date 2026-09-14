@@ -459,6 +459,227 @@ def _swap_mb(pid: int) -> int:
     return 0
 
 
+# ── Swap configuration (Home Assistant OS) ───────────────────────
+# HAOS 15+ exposes the swap file size and swappiness through the Supervisor
+# (GET/POST /os/config/swap). A new size takes effect after a host reboot.
+SUPERVISOR_URL = os.environ.get("SUPERVISOR_URL", "http://supervisor")
+# The Supervisor's ingress proxy. With host_network the app also listens on the
+# LAN without any login, so everything that changes the host must come through
+# ingress, i.e. from a signed-in Home Assistant user.
+INGRESS_PROXY_IPS = {"172.30.32.2"}
+SWAP_SIZE_RE = re.compile(r"^(\d+)([KMG])?$", re.I)
+SWAP_MAX_BYTES = 16 * 1024 ** 3
+SWAP_MIN_FREE_AFTER = 2 * 1024 ** 3      # keep this much of the data disk free
+SWAP_STEPS_G = (1, 2, 4, 6, 8)           # recommendations land on one of these
+_UNIT = {"": 1, "K": 1024, "M": 1024 ** 2, "G": 1024 ** 3}
+
+
+class SupervisorError(Exception):
+    def __init__(self, message, status=502):
+        super().__init__(message)
+        self.status = status
+
+
+def _supervisor(method, path, payload=None, timeout=15):
+    """Call the Supervisor API; returns the 'data' member or raises."""
+    import json
+    import urllib.error
+    import urllib.request
+    token = os.environ.get("SUPERVISOR_TOKEN", "")
+    if not token:
+        raise SupervisorError("No Supervisor token - hassio_api is not enabled for this add-on", 503)
+    body = json.dumps(payload).encode() if payload is not None else None
+    req = urllib.request.Request(SUPERVISOR_URL + path, data=body, method=method, headers={
+        "Authorization": f"Bearer {token}", "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            data = json.loads(r.read() or b"{}")
+    except urllib.error.HTTPError as e:
+        try:
+            msg = json.loads(e.read() or b"{}").get("message") or str(e)
+        except ValueError:
+            msg = str(e)
+        raise SupervisorError(msg, 404 if e.code == 404 else 502)
+    except (urllib.error.URLError, OSError, ValueError) as e:
+        raise SupervisorError(f"Supervisor not reachable: {e}", 503)
+    if data.get("result") not in (None, "ok"):
+        raise SupervisorError(data.get("message") or "Supervisor refused the request")
+    return data.get("data") or {}
+
+
+def parse_swap_size(text):
+    """'4G' -> bytes; '' -> None (HAOS default); raises ValueError."""
+    t = str(text or "").strip()
+    if not t:
+        return None
+    m = SWAP_SIZE_RE.match(t)
+    if not m:
+        raise ValueError("Size must be a number with an optional unit K, M or G, e.g. 4G")
+    return int(m.group(1)) * _UNIT[(m.group(2) or "").upper()]
+
+
+def recommend_swap(ram_bytes, swap_used_bytes, data_free_bytes, storage):
+    """Suggested (size string, swappiness, reasons).
+
+    Rule of thumb for a Home Assistant box: swap about the size of RAM up to
+    4 GB, half of RAM above that, never more than 8 GB. If the swap already in
+    use is more than half of that, leave room for twice the current use. Keep
+    at least SWAP_MIN_FREE_AFTER free on the data disk. On SD cards / eMMC
+    smaller, because every page written wears the flash.
+    """
+    gib = 1024 ** 3
+    ram_g = max(1, round(ram_bytes / gib))
+    size_g = ram_g if ram_g <= 4 else max(4, ram_g // 2)
+    reasons = [f"{ram_g} GB RAM: swap about the size of RAM" if ram_g <= 4
+               else f"{ram_g} GB RAM: half of RAM is plenty"]
+    used_g = swap_used_bytes / gib
+    if used_g * 2 > size_g:
+        size_g = int(-(-used_g * 2 // 1))
+        reasons.append(f"{used_g:.1f} GB swap already in use - room for twice that")
+    if storage == "sd":
+        size_g = min(size_g, 2)
+        reasons.append("SD card / eMMC: kept small to limit flash wear")
+    # snap up to a familiar step, so the suggestion is 4 GB rather than 3 or 7
+    size_g = next((s for s in SWAP_STEPS_G if s >= size_g), SWAP_STEPS_G[-1])
+    if data_free_bytes:
+        fits = int((data_free_bytes - SWAP_MIN_FREE_AFTER) // gib)
+        if fits < size_g:
+            size_g = max([s for s in SWAP_STEPS_G if s <= fits] or [0])
+            reasons.append("limited by free space on the data disk")
+    # HAOS ships swappiness 1: swap only under real memory pressure. On flash
+    # storage that is exactly right; there is no reason to swap earlier.
+    return (f"{size_g}G" if size_g > 0 else "0"), 1, reasons
+
+
+def _data_storage_kind():
+    """'ssd' | 'hdd' | 'sd' | 'unknown' for the disk holding /data."""
+    try:
+        dev = ""
+        best = ""
+        for part in psutil.disk_partitions(all=False):
+            mp = part.mountpoint
+            if ("/data" == mp or "/data".startswith(mp.rstrip("/") + "/") or mp == "/") and len(mp) > len(best):
+                best, dev = mp, part.device
+        name = os.path.basename(os.path.realpath(dev)) if dev else ""
+        if name.startswith("mmcblk"):
+            return "sd"
+        disk = re.sub(r"(p?\d+)$", "", name) if not name.startswith("nvme") else re.sub(r"p\d+$", "", name)
+        if name.startswith("nvme"):
+            return "ssd"
+        with open(f"/sys/block/{disk}/queue/rotational") as f:
+            return "hdd" if f.read().strip() == "1" else "ssd"
+    except (OSError, ValueError):
+        return "unknown"
+
+
+def _from_ingress():
+    return request.remote_addr in INGRESS_PROXY_IPS
+
+
+def _write_guard():
+    """None if a state-changing request may proceed, else an error response.
+
+    Only through ingress (a signed-in HA user), and only as JSON with our own
+    header - a cross-site form or fetch cannot set that without a CORS
+    preflight, which this app never answers."""
+    if not _from_ingress():
+        return jsonify({"error": "Changes are only allowed through the Home Assistant sidebar (ingress)."}), 403
+    if request.headers.get("X-HM-Action") != "1" or not request.is_json:
+        return jsonify({"error": "Bad request"}), 400
+    return None
+
+
+@app.route("/api/swap/config")
+def swap_config():
+    mem = psutil.virtual_memory()
+    swap = psutil.swap_memory()
+    try:
+        data_free = psutil.disk_usage("/data").free
+    except OSError:
+        data_free = 0
+    storage = _data_storage_kind()
+    rec_size, rec_swappiness, reasons = recommend_swap(mem.total, swap.used, data_free, storage)
+    out = {
+        "available": False, "reason": "", "swap_size": None, "swappiness": None,
+        "ram_total": mem.total, "swap_total": swap.total, "swap_used": swap.used,
+        "data_free": data_free, "storage": storage,
+        "recommended": {"swap_size": rec_size, "swappiness": rec_swappiness, "reasons": reasons},
+        "reboot_required": False, "can_change": _from_ingress(),
+        "max_bytes": min(SWAP_MAX_BYTES, max(0, data_free - SWAP_MIN_FREE_AFTER)) if data_free else SWAP_MAX_BYTES,
+    }
+    try:
+        cfg = _supervisor("GET", "/os/config/swap")
+        out.update(available=True, swap_size=cfg.get("swap_size"), swappiness=cfg.get("swappiness"))
+    except SupervisorError as e:
+        out["reason"] = str(e)
+        return jsonify(out)
+    try:
+        issues = _supervisor("GET", "/resolution/info").get("issues") or []
+        out["reboot_required"] = any(i.get("type") == "reboot_required" for i in issues)
+    except SupervisorError:
+        pass
+    return jsonify(out)
+
+
+@app.route("/api/swap/config", methods=["POST"])
+def swap_config_set():
+    denied = _write_guard()
+    if denied:
+        return denied
+    body = request.get_json(silent=True) or {}
+    payload = {}
+    if "swap_size" in body:
+        size_txt = str(body.get("swap_size") or "").strip().upper()
+        try:
+            size = parse_swap_size(size_txt)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        if size is None:
+            return jsonify({"error": "Size missing"}), 400
+        try:
+            free = psutil.disk_usage("/data").free
+        except OSError:
+            free = 0
+        limit = min(SWAP_MAX_BYTES, max(0, free - SWAP_MIN_FREE_AFTER)) if free else SWAP_MAX_BYTES
+        if size > limit:
+            return jsonify({"error": f"Too large: at most {limit // 1024 ** 2} MB fits "
+                                     f"(16 GB cap, {SWAP_MIN_FREE_AFTER // 1024 ** 3} GB stay free on the data disk)"}), 400
+        payload["swap_size"] = size_txt
+    if "swappiness" in body:
+        try:
+            sw = int(body.get("swappiness"))
+        except (TypeError, ValueError):
+            return jsonify({"error": "Swappiness must be a whole number"}), 400
+        if not 0 <= sw <= 100:
+            return jsonify({"error": "Swappiness must be between 0 and 100"}), 400
+        payload["swappiness"] = sw
+    if not payload:
+        return jsonify({"error": "Nothing to change"}), 400
+    try:
+        before = _supervisor("GET", "/os/config/swap")
+        _supervisor("POST", "/os/config/swap", payload)
+    except SupervisorError as e:
+        return jsonify({"error": str(e)}), e.status
+    size_changed = "swap_size" in payload and str(before.get("swap_size") or "") != payload["swap_size"]
+    print(f"[hardware-monitor] swap config set: {payload}", flush=True)
+    return jsonify({"ok": True, "reboot_required": size_changed})
+
+
+@app.route("/api/host/reboot", methods=["POST"])
+def host_reboot():
+    denied = _write_guard()
+    if denied:
+        return denied
+    if (request.get_json(silent=True) or {}).get("confirm") != "reboot":
+        return jsonify({"error": "Confirmation missing"}), 400
+    print("[hardware-monitor] host reboot requested from the UI", flush=True)
+    try:
+        _supervisor("POST", "/host/reboot", {}, timeout=30)
+    except SupervisorError as e:
+        return jsonify({"error": str(e)}), e.status
+    return jsonify({"ok": True})
+
+
 def _install_safe_getfqdn():
     """Keep the reverse DNS lookup during bind from killing the addon.
 

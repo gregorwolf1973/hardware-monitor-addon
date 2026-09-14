@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.7.0
+- Swap settings: the Swap card shows the size and swappiness configured in
+  Home Assistant OS; "Configure" opens a dialog with a recommended size
+  (about RAM up to 4 GB, half of RAM above, max 8 GB, smaller on SD cards,
+  limited by free space on the data disk). A new size takes effect after a
+  host restart, offered in the UI with a confirmation.
+- Requires Home Assistant OS 15+ (Supervisor API `/os/config/swap`);
+  `hassio_api: true` is now set.
+- Changes and restarts are only accepted through ingress; the LAN port
+  8200 has no login and stays read-only.
+
 ## 2.4.3
 - Fix: sticky process-table header overlapped the first row inside the
   horizontally-scrollable table wrapper — sticky positioning removed
