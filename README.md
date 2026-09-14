@@ -2,6 +2,8 @@
 
 [Deutsch](README.de.md) · **English**
 
+[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://buymeacoffee.com/gregorwolf1973)
+
 Live overview of your Home Assistant host: CPU, RAM, disks, network, temperatures
 and the top processes across **all** addons and the host system.
 
@@ -21,10 +23,12 @@ Then install **Hardware Monitor** and open it through the side panel (Ingress).
 
 - CPU total + per-core load, frequency, core counts
 - RAM and swap with usage bars
+- Swap size and swappiness configurable from the UI (Home Assistant OS 15+)
 - Disk usage per device (Docker bind-mount duplicates filtered out)
 - Live network throughput (TX/RX) + totals
 - Temperature sensors (where available)
-- Top processes (sortable by CPU / RAM / name)
+- Top processes (sortable by CPU / RAM / name), with per-process swap usage,
+  search box and a **Grouped** view per add-on
 - Filter chips: **All / HA / Host / Docker**
 - Configurable refresh interval (2s / 5s / 10s / 30s / off), stored in your browser
 - Recognizes Home Assistant Core, Supervisor helpers (`hassio_dns`, `hassio_audio`, …)

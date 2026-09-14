@@ -2,6 +2,8 @@
 
 **Deutsch** · [English](README.md)
 
+[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://buymeacoffee.com/gregorwolf1973)
+
 Live-Übersicht deines Home-Assistant-Hosts: CPU, RAM, Datenträger, Netzwerk,
 Temperaturen und die Top-Prozesse aller Addons und des Host-Systems.
 
@@ -23,10 +25,12 @@ Danach **Hardware Monitor** installieren und über die Seitenleiste (Ingress)
 
 - CPU gesamt + pro Kern, Frequenz, Kernanzahl
 - RAM und Swap mit Auslastungsbalken
+- Swap-Größe und Swappiness in der Oberfläche einstellbar (Home Assistant OS 15+)
 - Datenträger pro Device (Docker-Bind-Mount-Dubletten werden gefiltert)
 - Live-Netzwerkdurchsatz (TX/RX) + Summen
 - Temperatursensoren (sofern vorhanden)
-- Top-Prozesse (sortierbar nach CPU / RAM / Name)
+- Top-Prozesse (sortierbar nach CPU / RAM / Name), mit Swap-Nutzung pro
+  Prozess, Suchfeld und Ansicht **Grouped** nach Addon
 - Filter: **Alle / HA / Host / Docker**
 - Einstellbares Refresh-Intervall (2s / 5s / 10s / 30s / aus), wird im Browser
   gespeichert

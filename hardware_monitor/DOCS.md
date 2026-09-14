@@ -1,5 +1,7 @@
 # Hardware Monitor
 
+[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://buymeacoffee.com/gregorwolf1973)
+
 [Deutsch](DOCS.de.md) · **English**
 
 Live overview of CPU, RAM, disks, network, temperatures and processes — across
